@@ -6,6 +6,9 @@ from data.users import User
 from forms.register import RegisterForm
 from forms.login import LoginForm
 
+# for linux absolute path
+# for windows relative path
+PATH_TO_DB_FOLDER = '/home/pashok/PycharmProjects/chess/db'
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
@@ -81,7 +84,7 @@ def logout():
 
 
 def main():
-    db_session.global_init("../db/users.db")
+    db_session.global_init(PATH_TO_DB_FOLDER + "/users.db")
     app.run()
 
 

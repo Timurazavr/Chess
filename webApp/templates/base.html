@@ -25,7 +25,6 @@
     <nav>
         {% if current_user.is_authenticated %}
             <h2 class="navbar-brand">{{ current_user.name }}</h2>
-            <a class="btn btn-secondary" href="/add_job">Добавить работу</a>
             <a class="btn btn-danger" href="/logout">Выйти</a>
         {% else %}
             <p>

@@ -1,10 +1,12 @@
 from flask import Flask, request, make_response, redirect
 from flask import render_template
 from data import db_session
-from flask_login import LoginManager, login_user, logout_user
+from flask_login import LoginManager, login_user, logout_user, current_user
 from data.users import User
+from data.games import Game
 from forms.register import RegisterForm
 from forms.login import LoginForm
+from forms.start_game import StartGameForm
 
 # for linux absolute path
 # for windows relative path
@@ -23,20 +25,27 @@ def load_user(user_id):
 
 
 @app.route('/')
-@app.route("/cookie_test")
-def cookie_test():
-    visits_count = int(request.cookies.get("visits_count", 0))
-    if visits_count:
-        res = make_response(
-            f"Вы пришли на эту страницу {visits_count + 1} раз")
-        res.set_cookie("visits_count", str(visits_count + 1),
-                       max_age=60 * 60 * 24 * 365 * 2)
+def start():
+    if current_user.is_authenticated:
+        pass
     else:
-        res = make_response(
-            "Вы пришли на эту страницу в первый раз за последние 2 года")
-        res.set_cookie("visits_count", '1',
-                       max_age=60 * 60 * 24 * 365 * 2)
-    return res
+        return redirect('/login')
+
+
+# @app.route("/cookie_test")
+# def cookie_test():
+#     visits_count = int(request.cookies.get("visits_count", 0))
+#     if visits_count:
+#         res = make_response(
+#             f"Вы пришли на эту страницу {visits_count + 1} раз")
+#         res.set_cookie("visits_count", str(visits_count + 1),
+#                        max_age=60 * 60 * 24 * 365 * 2)
+#     else:
+#         res = make_response(
+#             "Вы пришли на эту страницу в первый раз за последние 2 года")
+#         res.set_cookie("visits_count", '1',
+#                        max_age=60 * 60 * 24 * 365 * 2)
+#     return res
 
 
 @app.route('/register', methods=['GET', 'POST'])

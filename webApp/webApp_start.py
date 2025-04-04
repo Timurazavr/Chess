@@ -27,7 +27,8 @@ def load_user(user_id):
 @app.route('/')
 def start():
     if current_user.is_authenticated:
-        pass
+        form = StartGameForm()
+        return render_template('start_game.html', form=form)
     else:
         return redirect('/login')
 

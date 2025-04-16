@@ -1,12 +1,13 @@
 from flask import Flask, request, make_response, redirect
 from flask import render_template
 from data import db_session
-from flask_login import LoginManager, login_user, logout_user, current_user
+from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from data.users import User
+from data.onlines import Online
 from data.games import Game
 from forms.register import RegisterForm
 from forms.login import LoginForm
-from forms.start_game import StartGameForm
+from forms.start_game import StartGameForm, WaitingForm
 
 # for linux absolute path
 # for windows relative path
@@ -24,13 +25,35 @@ def load_user(user_id):
     return db_sess.query(User).get(user_id)
 
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def start():
     if current_user.is_authenticated:
         form = StartGameForm()
+        if form.validate_on_submit():
+            return redirect('/waiting_for_players')
         return render_template('start_game.html', form=form)
     else:
         return redirect('/login')
+
+
+@app.route('/waiting_for_players', methods=['GET', 'POST'])
+@login_required
+def waiting():
+    db_sess = db_session.create_session()
+    if not db_sess.query(Online).filter(Online.id == current_user.id).first():
+        online = Online(
+            id=db_sess.query(User).filter(User.id == current_user.id).first().id,
+        )
+        db_sess.add(online)
+        db_sess.commit()
+    print(len(db_sess.query(Online).all()))
+    SOME_INSTANSE = False  # todo
+    form = WaitingForm()
+    if form.validate_on_submit():
+        if SOME_INSTANSE:
+            return redirect('/session/<id>')
+        return redirect('/waiting_for_players')
+    return render_template('waiting.html', message="Никого...")
 
 
 # @app.route("/cookie_test")

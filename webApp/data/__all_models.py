@@ -1,1 +1,1 @@
-from . import users, games, onlines
+from . import users, games_chess

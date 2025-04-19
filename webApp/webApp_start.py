@@ -1,20 +1,17 @@
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, jsonify, make_response
 from flask import render_template
 from data import db_session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from data.users import User
-from data.onlines import Online
-from data.games import GameKN
+from data.games_chess import GameChess
 from forms.register import RegisterForm
 from forms.login import LoginForm
-from forms.start_game import StartGameForm, WaitingForm
-from flask_htmx import HTMX, make_response
+from forms.start_game import StartGameForm
 
 # for linux absolute path
 # for windows relative path
 PATH_TO_DB_FOLDER = '/home/pashok/PycharmProjects/chess/db'
 app = Flask(__name__)
-htmx = HTMX(app)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 login_manager = LoginManager()
@@ -38,41 +35,40 @@ def start():
         return redirect('/login')
 
 
-@app.route('/waiting_for_players', methods=['GET', 'POST'])
+@app.route('/waiting_for_players', methods=['GET'])
 @login_required
 def waiting():
-    # visits_count = int(request.cookies.get("dots", 0))
-    # if visits_count:
-
     # db_sess = db_session.create_session()
-    # if not db_sess.query(Online).filter(Online.id == current_user.id).first():
-    #     online = Online(
-    #         id=db_sess.query(User).filter(User.id == current_user.id).first().id,
+    # if not db_sess.query(GameChess).filter(
+    #         GameChess.white_id == current_user.id or GameChess.black_id == current_user.id).first():
+    #     if len(db_sess.query(GameChess).all()) != 0:
+    #         session = db_sess.query(GameChess).first()
+    #         session.black_id = current_user.id
+    #         db_sess.commit()
+    #         return redirect(f'/session/{session.id}')
+    #     session = GameChess(
+    #         white_id=current_user.id,
     #     )
-    #     db_sess.add(online)
+    #     db_sess.add(session)
     #     db_sess.commit()
-    # print(len(db_sess.query(Online).all()))
-    # SOME_INSTANSE = False  # todo
-    # form = WaitingForm()
-    # if form.validate_on_submit() and SOME_INSTANSE:
-    #     return redirect('/session/<id>')
     return render_template('waiting.html')
 
 
-# @app.route("/cookie_test")
-# def cookie_test():
-#     visits_count = int(request.cookies.get("visits_count", 0))
-#     if visits_count:
-#         res = make_response(
-#             f"Вы пришли на эту страницу {visits_count + 1} раз")
-#         res.set_cookie("visits_count", str(visits_count + 1),
-#                        max_age=60 * 60 * 24 * 365 * 2)
-#     else:
-#         res = make_response(
-#             "Вы пришли на эту страницу в первый раз за последние 2 года")
-#         res.set_cookie("visits_count", '1',
-#                        max_age=60 * 60 * 24 * 365 * 2)
-#     return res
+@app.route('/check', methods=['GET'])
+@login_required
+# def check():
+#     db_sess = db_session.create_session()
+#     session = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first()
+#     if session.black_id == -1:
+#         return jsonify(start_game=False)
+#     return jsonify(start_game=True, session=session.id)
+def check():
+    return jsonify(start_game=False)
+
+
+@app.route("/session/<session_id>", methods=['GET'])
+def cookie_test(session_id):
+    return 0
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -122,6 +118,10 @@ def logout():
 def main():
     db_session.global_init(PATH_TO_DB_FOLDER + "/users.db")
     app.run()
+
+
+def rotate_board(board: [[], ]):
+    return [board[i].reverse() for i in range(7, -1, -1)]
 
 
 if __name__ == '__main__':

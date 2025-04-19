@@ -1,18 +1,20 @@
-from flask import Flask, request, make_response, redirect
+from flask import Flask, request, redirect
 from flask import render_template
 from data import db_session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from data.users import User
 from data.onlines import Online
-from data.games import Game
+from data.games import GameKN
 from forms.register import RegisterForm
 from forms.login import LoginForm
 from forms.start_game import StartGameForm, WaitingForm
+from flask_htmx import HTMX, make_response
 
 # for linux absolute path
 # for windows relative path
 PATH_TO_DB_FOLDER = '/home/pashok/PycharmProjects/chess/db'
 app = Flask(__name__)
+htmx = HTMX(app)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 login_manager = LoginManager()
@@ -39,21 +41,22 @@ def start():
 @app.route('/waiting_for_players', methods=['GET', 'POST'])
 @login_required
 def waiting():
-    db_sess = db_session.create_session()
-    if not db_sess.query(Online).filter(Online.id == current_user.id).first():
-        online = Online(
-            id=db_sess.query(User).filter(User.id == current_user.id).first().id,
-        )
-        db_sess.add(online)
-        db_sess.commit()
-    print(len(db_sess.query(Online).all()))
-    SOME_INSTANSE = False  # todo
-    form = WaitingForm()
-    if form.validate_on_submit():
-        if SOME_INSTANSE:
-            return redirect('/session/<id>')
-        return redirect('/waiting_for_players')
-    return render_template('waiting.html', message="Никого...")
+    # visits_count = int(request.cookies.get("dots", 0))
+    # if visits_count:
+
+    # db_sess = db_session.create_session()
+    # if not db_sess.query(Online).filter(Online.id == current_user.id).first():
+    #     online = Online(
+    #         id=db_sess.query(User).filter(User.id == current_user.id).first().id,
+    #     )
+    #     db_sess.add(online)
+    #     db_sess.commit()
+    # print(len(db_sess.query(Online).all()))
+    # SOME_INSTANSE = False  # todo
+    # form = WaitingForm()
+    # if form.validate_on_submit() and SOME_INSTANSE:
+    #     return redirect('/session/<id>')
+    return render_template('waiting.html')
 
 
 # @app.route("/cookie_test")

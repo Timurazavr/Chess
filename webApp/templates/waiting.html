@@ -1,22 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Начнем игру?</h1>
     <form action="" method="post">
-        {{ form.hidden_tag() }}
-        <div>{{ message }}</div>
+        <h3 id="waiting"></h3>
     </form>
 {% endblock %}
 {% block script %}
-    <script>
-        function update_values() {
-            $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-            $.getJSON($SCRIPT_ROOT + "/_stuff",
-                function (data) {
-                    $("#cpuload").text(data.cpu + " %")
-                    $("#ram").text(data.ram + " %")
-                    $("#disk").text(data.disk + " %")
-                });
-        }
-    </script>
+    <script src={{ url_for('static', filename='script/waiting.js') }}></script>
 {% endblock %}

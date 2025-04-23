@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, jsonify, make_response
+from flask import Flask, request, redirect, jsonify, make_response, url_for
 from flask import render_template
 from data import db_session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
@@ -25,7 +25,7 @@ def load_user(user_id):
 
 
 @app.route('/', methods=['GET', 'POST'])
-def start():
+def index():
     if current_user.is_authenticated:
         form = StartGameForm()
         if form.validate_on_submit():
@@ -38,6 +38,8 @@ def start():
 @app.route('/waiting_for_players', methods=['GET'])
 @login_required
 def waiting():
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
     # db_sess = db_session.create_session()
     # if not db_sess.query(GameChess).filter(
     #         GameChess.white_id == current_user.id or GameChess.black_id == current_user.id).first():
@@ -68,6 +70,8 @@ def check():
 
 @app.route("/session/<session_id>", methods=['GET'])
 def cookie_test(session_id):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
     return 0
 
 
@@ -113,6 +117,20 @@ def login():
 def logout():
     logout_user()
     return redirect("/")
+
+
+@app.route('/test')
+def test():
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    return render_template('session.html')
+
+
+@app.route('/get_colour')
+def get_colour():
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    return jsonify(colour='white')  # todo
 
 
 def main():

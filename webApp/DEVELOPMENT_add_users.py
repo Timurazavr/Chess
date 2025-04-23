@@ -1,37 +1,29 @@
 from flask import Flask
 from data import db_session
 from data.users import User
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+from data.games_chess import GameChess
 
 
-def main():
-    db_session.global_init("../db/users.db")
+def add():
+    db_session.global_init("/home/pashok/PycharmProjects/chess/db/users.db")
     db_sess = db_session.create_session()
-    app.run()
     user = User()
-    user.nickname = "Ridley"
-    user.hashed_password = "cap"
+    user.nickname = 'root'
+    user.set_password('root')
     db_sess.add(user)
+    user1 = User()
+    user1.nickname = 'root2'
+    user1.set_password('root2')
+    db_sess.add(user1)
+    db_sess.commit()
 
-    user = User()
-    user.nickname = "andrey"
-    user.hashed_password = "zalupa"
-    db_sess.add(user)
 
-    user = User()
-    user.nickname = "haahah"
-    user.hashed_password = "fyjuk"
-    db_sess.add(user)
-
-    user = User()
-    user.nickname = "ROOT"
-    user.hashed_password = "ROOT"
-    db_sess.add(user)
-
+def remove():
+    db_session.global_init("/home/pashok/PycharmProjects/chess/db/users.db")
+    db_sess = db_session.create_session()
+    db_sess.query(GameChess).delete()
     db_sess.commit()
 
 
 if __name__ == '__main__':
-    main()
+    remove()

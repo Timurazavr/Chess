@@ -3,6 +3,9 @@
 {% block content %}
     <p hidden="hidden" id="script-root">{{ request.script_root|tojson|safe }}</p>
     <p hidden="hidden" id="session">{{ request.script_root|tojson|safe }}</p>
+    <p hidden="hidden" id="black-field">{{ url_for('static', filename='img/black_field.png') }}</p>
+    <p hidden="hidden" id="white-field">{{ url_for('static', filename='img/white_field.png') }}</p>
+    <p hidden="hidden" id="session">{{ request.script_root|tojson|safe }}</p>
     <h1 id="test"></h1>
     <div class="board" id="board">
         <button class="image-button" id="11"></button>

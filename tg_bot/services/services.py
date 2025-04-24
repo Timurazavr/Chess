@@ -1,3 +1,6 @@
+from lexicon.lexicon import LEXICON
+
+
 class Session:
     def __init__(self):
         pass
@@ -5,6 +8,7 @@ class Session:
 
 class Chess:
     def __init__(self):
+        self.who_walking = "white"
         self.field = [
             [
                 Rook(0, 0, color="black"),
@@ -34,23 +38,79 @@ class Chess:
             ],
         ]
 
-    def can_move(self, x, y, new_x, new_y):
-        if self.field[y][x]:
-            return self.field[y][x].can_move(new_x, new_y, self.field)
+    def can_move(self, x, y):
+        if self.field[y][x] is None:
+            return False
+        if self.who_walking != self.field[y][x].color:
+            return False
+        # if ():# Стоит ли король под шахом
+        #     return False
+        return True
 
-    def hod(self, x, y, new_x, new_y):
-        if self.can_move(x, y, new_x, new_y):
-            self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
-            self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y
+    def move(self, x, y, new_x, new_y):
+        if self.field[y][x] is None:
+            return False
+        if self.who_walking != self.field[y][x].color:
+            return False
+        if not self.field[y][x].can_move(new_x, new_y, self.field):
+            return False
+        # shah_figure = self.is_shah(self.who_walking)
+        # if shah_figure is not None:
+        #     if self.is_mate(shah_figure):
+        #         return False
+
+        self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
+        self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y
+
+        shah_figure = self.is_shah(self.who_walking)
+        if shah_figure is not None:
+            self.field[y][x], self.field[new_y][new_x] = self.field[new_y][new_x], None
+            self.field[y][x].x, self.field[y][x].y = x, y
+            return False
+
+        self.who_walking = "black" if self.who_walking == "white" else "white"
+        return True
+
+    def is_shah(self, color):
+        flag_search = False
+        for i in self.field:
+            for j in i:
+                if not flag_search and isinstance(j, King) and j.color == color:
+                    x, y = j.x, j.y
+                    flag_search = True
+                    break
+            if flag_search:
+                break
+
+        for i in range(8):
+            for j in range(8):
+                if (
+                    y == i
+                    or x == j
+                    or abs(y - i) == abs(x - j)
+                    or (abs(y - i) == 2 and abs(x - j) == 1)
+                    or (abs(y - i) == 1 and abs(x - j) == 2)
+                ):
+                    if (
+                        self.field[i][j] is not None
+                        and self.field[i][j].color != self.field[y][x].color
+                        and self.field[i][j].can_move(x, y, self.field)
+                    ):
+                        return self.field[i][j]
+
+    def is_mate(self, figure):
+        1
 
 
-class Pawn:  # Пешка
+class Figure:
     def __init__(self, x: int, y: int, color: str):
         self.x, self.y, self.color = x, y, color
 
     def __str__(self):
-        return self.__class__.__name__
+        return LEXICON[self.color][self.__class__.__name__]
 
+
+class Pawn(Figure):  # Пешка
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if self.color == "white":
             if new_x == self.x:
@@ -67,6 +127,8 @@ class Pawn:  # Пешка
                     or field[new_y][new_x].color == self.color
                 ):
                     return False
+            else:
+                return False
         elif self.color == "black":
             if new_x == self.x:
                 if not (self.y - new_y == -1 or (self.y - new_y == -2 and self.y == 1)):
@@ -82,16 +144,12 @@ class Pawn:  # Пешка
                     or field[new_y][new_x].color == self.color
                 ):
                     return False
+            else:
+                return False
         return True
 
 
-class Queen:  # Ферзь
-    def __init__(self, x: int, y: int, color: str):
-        self.x, self.y, self.color = x, y, color
-
-    def __str__(self):
-        return self.__class__.__name__
-
+class Queen(Figure):  # Ферзь
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (
             abs(self.x - new_x) == abs(self.y - new_y)
@@ -127,13 +185,7 @@ class Queen:  # Ферзь
         return True
 
 
-class King:  # Король
-    def __init__(self, x: int, y: int, color: str):
-        self.x, self.y, self.color = x, y, color
-
-    def __str__(self):
-        return self.__class__.__name__
-
+class King(Figure):  # Король
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (abs(self.x - new_x) <= 1 and abs(self.y - new_y) <= 1):
             # Проверка может ли физически переместиться в данную клетку
@@ -144,13 +196,7 @@ class King:  # Король
         return True
 
 
-class Officer:  # Офицер
-    def __init__(self, x: int, y: int, color: str):
-        self.x, self.y, self.color = x, y, color
-
-    def __str__(self):
-        return self.__class__.__name__
-
+class Officer(Figure):  # Офицер
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (abs(self.x - new_x) == abs(self.y - new_y)):
             # Проверка может ли физически переместиться в данную клетку
@@ -171,13 +217,7 @@ class Officer:  # Офицер
         return True
 
 
-class Rook:  # Ладья
-    def __init__(self, x: int, y: int, color: str):
-        self.x, self.y, self.color = x, y, color
-
-    def __str__(self):
-        return self.__class__.__name__
-
+class Rook(Figure):  # Ладья
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (self.x == new_x or self.y == new_y):
             # Проверка может ли физически переместиться в данную клетку
@@ -197,13 +237,7 @@ class Rook:  # Ладья
         return True
 
 
-class Knight:  # Конь
-    def __init__(self, x: int, y: int, color: str):
-        self.x, self.y, self.color = x, y, color
-
-    def __str__(self):
-        return self.__class__.__name__
-
+class Knight(Figure):  # Конь
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (
             (abs(self.x - new_x) == 1 and abs(self.y - new_y) == 2)
@@ -218,7 +252,3 @@ class Knight:  # Конь
 
 
 ch = Chess()
-while 1:
-    for i in ch.field:
-        print(*i)
-    ch.hod(*map(int, input().split()))

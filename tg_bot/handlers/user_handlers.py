@@ -6,9 +6,9 @@ from aiogram.types import (
     InlineKeyboardMarkup,
 )
 from lexicon.lexicon import LEXICON
-from keyboards.pagination_kb import create_keyb, create_krest_nol
+from keyboards.pagination_kb import create_keyb, create_chess
 from databases.database import add_user, chang_user, search_user
-from services.services import table_priv
+from services.services import ch
 
 router = Router()
 
@@ -18,7 +18,7 @@ async def process_start_command(message: Message, bot: Bot):
     last_message_id = search_user(message.from_user.id)
     if last_message_id:
         chang_user(message.from_user.id, message.message_id)
-        bot.delete_message(message.chat.id, last_message_id)
+        await bot.delete_message(message.chat.id, last_message_id)
     else:
         add_user(message.from_user.id, message.message_id)
     await message.answer(
@@ -29,7 +29,7 @@ async def process_start_command(message: Message, bot: Bot):
 @router.callback_query(F.data == "offline")
 async def process_offline_press(callback: CallbackQuery):
     await callback.message.edit_text(
-        text=LEXICON["motion_white"], reply_markup=create_krest_nol()
+        text=LEXICON["motion_white"], reply_markup=create_chess(ch.field)
     )
 
 
@@ -38,38 +38,62 @@ async def process_offline_press(callback: CallbackQuery):
     await callback.answer("Пока недоступно")
 
 
-@router.callback_query(F.data.in_("123456789"))
-async def process_nazm_press(callback: CallbackQuery):
-    sp, a = callback.message.reply_markup.inline_keyboard, int(callback.data) - 1
-    if sp[a // 3][a % 3].text == "-":
-        sp[a // 3][a % 3].text = (
-            "⭕" if users_db[callback.from_user.id]["hod"] else "❌"
-        )
-        users_db[callback.from_user.id]["hod"] = not users_db[callback.from_user.id][
-            "hod"
-        ]
-        win = table_priv(sp)
-        if win is not None:
-            if win == "Ничья!":
-                users_db[callback.from_user.id]["hod"] = True
-                await callback.message.edit_text(text=win)
-            else:
-                await callback.message.edit_text(text=LEXICON["win"] + " " + win)
-        else:
-            mark = InlineKeyboardMarkup(inline_keyboard=sp)
-            await callback.message.edit_text(
-                text=(
-                    LEXICON["nol"]
-                    if users_db[callback.from_user.id]["hod"]
-                    else LEXICON["krs"]
-                ),
-                reply_markup=mark,
-            )
+# @router.callback_query(F.data.in_("123456789"))
+# async def process_nazm_press(callback: CallbackQuery):
+#     sp, a = callback.message.reply_markup.inline_keyboard, int(callback.data) - 1
+#     if sp[a // 3][a % 3].text == "-":
+#         sp[a // 3][a % 3].text = (
+#             "⭕" if users_db[callback.from_user.id]["hod"] else "❌"
+#         )
+#         users_db[callback.from_user.id]["hod"] = not users_db[callback.from_user.id][
+#             "hod"
+#         ]
+#         win = table_priv(sp)
+#         if win is not None:
+#             if win == "Ничья!":
+#                 users_db[callback.from_user.id]["hod"] = True
+#                 await callback.message.edit_text(text=win)
+#             else:
+#                 await callback.message.edit_text(text=LEXICON["win"] + " " + win)
+#         else:
+#             mark = InlineKeyboardMarkup(inline_keyboard=sp)
+#             await callback.message.edit_text(
+#                 text=(
+#                     LEXICON["nol"]
+#                     if users_db[callback.from_user.id]["hod"]
+#                     else LEXICON["krs"]
+#                 ),
+#                 reply_markup=mark,
+#             )
 
-    await callback.answer()
+#     await callback.answer()
 
 
-@router.callback_query(F.data == "konch")
+# @router.callback_query(F.data == "konch")
+# async def process_konch_press(callback: CallbackQuery):
+#     users_db[callback.from_user.id]["hod"] = True
+#     await callback.message.edit_text(text=LEXICON["end"])
+
+
+@router.callback_query(
+    lambda callback: callback.message.text != LEXICON["motion_" + ch.who_walking]
+)
 async def process_konch_press(callback: CallbackQuery):
-    users_db[callback.from_user.id]["hod"] = True
-    await callback.message.edit_text(text=LEXICON["end"])
+    print(repr(callback.message.text), repr(LEXICON["motion_" + ch.who_walking]))
+    y1, x1 = map(int, callback.message.text)
+    y2, x2 = map(int, callback.data)
+    ch.move(x1, y1, x2, y2)
+    await callback.message.edit_text(
+        text=LEXICON["motion_" + ch.who_walking], reply_markup=create_chess(ch.field)
+    )
+
+
+@router.callback_query()
+async def process_konch_press(callback: CallbackQuery):
+    y, x = map(int, callback.data)
+    if ch.can_move(x, y):
+        await callback.message.edit_text(
+            text=callback.data, reply_markup=create_chess(ch.field)
+        )
+    else:
+        await callback.answer()

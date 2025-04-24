@@ -7,6 +7,21 @@ LEXICON: dict[str, str] = {
     "motion_black": "Ход чёрных:",
     "win": "Выиграл",
     "end": "Игра закончена!",
+    "white": {
+        "Pawn": "♙",
+        "Queen": "♕",
+        "King": "♔",
+        "Officer": "♗",
+        "Rook": "♖",
+        "Knight": "♘",
+    },
+    "black": {
+        "Pawn": "♟",
+        "Queen": "♛",
+        "King": "♚",
+        "Officer": "♝",
+        "Rook": "♜",
+        "Knight": "♞",
+    },
 }
-
 LEXICON_COMMANDS: dict[str, str] = {"/start": "Начало"}

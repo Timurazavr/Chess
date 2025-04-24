@@ -14,14 +14,16 @@ def create_keyb(*buttons: str) -> InlineKeyboardMarkup:
     return keyb.as_markup()
 
 
-def create_krest_nol() -> InlineKeyboardMarkup:
+def create_chess(field) -> InlineKeyboardMarkup:
     keyb: InlineKeyboardBuilder = InlineKeyboardBuilder()
-    st = "♜♞♝♛♚♝♞♜♟♟♟♟♟♟♟♟--------------------------------♙♙♙♙♙♙♙♙♖♘♗♕♔♗♘♖"
-
     keyb.row(
         *[
-            InlineKeyboardButton(text=st[b - 1], callback_data=str(b))
-            for b in range(1, 65)
+            InlineKeyboardButton(
+                text=" " if field[i][j] is None else str(field[i][j]),
+                callback_data=str(i) + str(j),
+            )
+            for i in range(8)
+            for j in range(8)
         ],
         InlineKeyboardButton(text="Закончить игру", callback_data="konch"),
         width=8

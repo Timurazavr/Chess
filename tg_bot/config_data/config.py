@@ -5,7 +5,7 @@ from dataclasses import dataclass
 @dataclass
 class TgBot:
     token: str  # Токен для доступа к телеграм-боту
-    admin_ids: list[int]
+    admin_ids: list[int]  # id админов
 
 
 @dataclass

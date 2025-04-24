@@ -54,10 +54,6 @@ class Chess:
             return False
         if not self.field[y][x].can_move(new_x, new_y, self.field):
             return False
-        # shah_figure = self.is_shah(self.who_walking)
-        # if shah_figure is not None:
-        #     if self.is_mate(shah_figure):
-        #         return False
 
         self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
         self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y

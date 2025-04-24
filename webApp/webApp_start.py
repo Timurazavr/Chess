@@ -47,7 +47,7 @@ def waiting():
                 GameChess.white_id == current_user.id or GameChess.black_id == current_user.id).first()
             if sess.black_id != -1:
                 return redirect(f'/session/{sess.id}')
-        except Exception:
+        except Exception as e:
             if len(db_sess.query(GameChess).all()) != 0:
                 session = db_sess.query(GameChess).first()
                 session.black_id = current_user.id
@@ -79,7 +79,7 @@ def session(session_id):
     if current_user.is_authenticated:
         if not request.script_root:
             request.root_path = url_for('index', _external=True)
-        return render_template('session.html')
+        return render_template('session.html', session_id=session_id)
     else:
         return redirect('/login')
 
@@ -135,15 +135,19 @@ def test():
     return render_template('session.html')
 
 
-@app.route('/get_colour')
-def get_colour():
+@app.route('/get_colour/<session_id>')
+def get_colour(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
-    return jsonify(colour='black')  # todo
+    db_sess = db_session.create_session()
+    if db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first():
+        return jsonify(colour='white')
+    else:
+        return jsonify(colour='black')
 
 
 def main():
-    db_session.global_init(PATH_TO_DB_FOLDER + "/users.db")
+    db_session.global_init(PATH_TO_DB_FOLDER + "/data.db")
     app.run()
 
 

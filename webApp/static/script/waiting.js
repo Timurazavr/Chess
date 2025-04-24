@@ -1,5 +1,6 @@
 let dots = 0;
 let cons = 'Ищем'
+
 function update_values() {
     let element = document.getElementById("waiting");
     element.innerHTML = cons + '.'.repeat(dots + 1);
@@ -9,7 +10,7 @@ function update_values() {
             cons = 'Найден противник: ' + data.enemy;
             setTimeout(function () {
                 window.location = $SCRIPT_ROOT + "session/" + data.session;
-            }, 5000)
+            }, 2000)
         }
     });
     dots = (dots + 1) % 3;

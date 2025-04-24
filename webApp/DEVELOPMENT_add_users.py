@@ -5,7 +5,7 @@ from data.games_chess import GameChess
 
 
 def add():
-    db_session.global_init("/home/pashok/PycharmProjects/chess/db/users.db")
+    db_session.global_init("/home/pashok/PycharmProjects/chess/db/data.db")
     db_sess = db_session.create_session()
     user = User()
     user.nickname = 'root'
@@ -19,7 +19,7 @@ def add():
 
 
 def remove():
-    db_session.global_init("/home/pashok/PycharmProjects/chess/db/users.db")
+    db_session.global_init("/home/pashok/PycharmProjects/chess/db/data.db")
     db_sess = db_session.create_session()
     db_sess.query(GameChess).delete()
     db_sess.commit()

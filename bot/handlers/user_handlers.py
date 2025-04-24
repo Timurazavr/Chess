@@ -1,0 +1,64 @@
+from aiogram import F, Router, Bot
+from aiogram.filters import Command, CommandStart
+from aiogram.types import (
+    CallbackQuery,
+    Message,
+    InlineKeyboardMarkup,
+)
+from lexicon.lexicon import LEXICON
+from keyboards.pagination_kb import create_keyb, create_chess
+from databases.database import is_user_exists, get_user, add_user, chang_user
+from services.services import ch
+
+router = Router()
+
+
+@router.message(CommandStart())
+async def process_start_command(message: Message, bot: Bot):
+    await message.delete()
+    message_id = (
+        await message.answer(
+            LEXICON["start"], reply_markup=create_keyb("online", "offline")
+        )
+    ).message_id
+    if is_user_exists(message.from_user.id):
+        last_message_id = get_user(message.from_user.id)
+        chang_user(message.from_user.id, message_id)
+        await bot.delete_message(message.chat.id, last_message_id)
+    else:
+        add_user(message.from_user.id, message_id)
+
+
+@router.callback_query(F.data == "offline")
+async def process_offline_press(callback: CallbackQuery):
+    await callback.message.edit_text(
+        text=LEXICON["motion_white"], reply_markup=create_chess(ch.field)
+    )
+
+
+@router.callback_query(F.data == "online")
+async def process_offline_press(callback: CallbackQuery):
+    await callback.answer("Пока недоступно", True)
+
+
+@router.callback_query(
+    lambda callback: callback.message.text != LEXICON["motion_" + ch.who_walking]
+)
+async def process_konch_press(callback: CallbackQuery):
+    y1, x1 = map(int, callback.message.text)
+    y2, x2 = map(int, callback.data)
+    ch.move(x1, y1, x2, y2)
+    await callback.message.edit_text(
+        text=LEXICON["motion_" + ch.who_walking], reply_markup=create_chess(ch.field)
+    )
+
+
+@router.callback_query()
+async def process_konch_press(callback: CallbackQuery):
+    y, x = map(int, callback.data)
+    if ch.can_move(x, y):
+        await callback.message.edit_text(
+            text=callback.data, reply_markup=create_chess(ch.field)
+        )
+    else:
+        await callback.answer()

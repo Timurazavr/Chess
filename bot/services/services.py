@@ -1,11 +1,6 @@
 from lexicon.lexicon import LEXICON
 
 
-class Session:
-    def __init__(self):
-        pass
-
-
 class Chess:
     def __init__(self):
         self.who_walking = "white"
@@ -43,8 +38,6 @@ class Chess:
             return False
         if self.who_walking != self.field[y][x].color:
             return False
-        # if ():# Стоит ли король под шахом
-        #     return False
         return True
 
     def move(self, x, y, new_x, new_y):
@@ -247,4 +240,4 @@ class Knight(Figure):  # Конь
         return True
 
 
-ch = Chess()
+session_dict = {}

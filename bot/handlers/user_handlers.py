@@ -1,14 +1,10 @@
 from aiogram import F, Router, Bot
-from aiogram.filters import Command, CommandStart
-from aiogram.types import (
-    CallbackQuery,
-    Message,
-    InlineKeyboardMarkup,
-)
+from aiogram.filters import CommandStart
+from aiogram.types import CallbackQuery, Message
 from lexicon.lexicon import LEXICON
-from keyboards.pagination_kb import create_keyb, create_chess
+from keyboards.pagination_kb import create_keyb, create_keyboard_chess
 from databases.database import is_user_exists, get_user, add_user, chang_user
-from services.services import ch
+from services.services import session_dict, Chess
 
 router = Router()
 
@@ -31,8 +27,11 @@ async def process_start_command(message: Message, bot: Bot):
 
 @router.callback_query(F.data == "offline")
 async def process_offline_press(callback: CallbackQuery):
+    if callback.from_user.id not in session_dict:
+        session_dict[callback.from_user.id] = Chess()
     await callback.message.edit_text(
-        text=LEXICON["motion_white"], reply_markup=create_chess(ch.field)
+        text=LEXICON["motion_" + session_dict[callback.from_user.id].who_walking],
+        reply_markup=create_keyboard_chess(session_dict[callback.from_user.id].field),
     )
 
 
@@ -42,23 +41,43 @@ async def process_offline_press(callback: CallbackQuery):
 
 
 @router.callback_query(
-    lambda callback: callback.message.text != LEXICON["motion_" + ch.who_walking]
+    lambda x: x.message.text.isdigit()
+    and len(x.message.text) == 2
+    and 0 <= int(x.message.text[0]) <= 7
+    and 0 <= int(x.message.text[1]) <= 7
 )
 async def process_konch_press(callback: CallbackQuery):
     y1, x1 = map(int, callback.message.text)
     y2, x2 = map(int, callback.data)
-    ch.move(x1, y1, x2, y2)
+    session_dict[callback.from_user.id].move(x1, y1, x2, y2)
     await callback.message.edit_text(
-        text=LEXICON["motion_" + ch.who_walking], reply_markup=create_chess(ch.field)
+        text=LEXICON["motion_" + session_dict[callback.from_user.id].who_walking],
+        reply_markup=create_keyboard_chess(session_dict[callback.from_user.id].field),
     )
 
 
-@router.callback_query()
+@router.callback_query(
+    lambda x: x.data.isdigit()
+    and len(x.data) == 2
+    and 0 <= int(x.data[0]) <= 7
+    and 0 <= int(x.data[1]) <= 7
+)
 async def process_konch_press(callback: CallbackQuery):
     y, x = map(int, callback.data)
-    if ch.can_move(x, y):
+    if session_dict[callback.from_user.id].can_move(x, y):
         await callback.message.edit_text(
-            text=callback.data, reply_markup=create_chess(ch.field)
+            text=callback.data,
+            reply_markup=create_keyboard_chess(
+                session_dict[callback.from_user.id].field
+            ),
         )
     else:
         await callback.answer()
+
+
+@router.callback_query(F.data == "end_game_btn")
+async def process_offline_press(callback: CallbackQuery):
+    del session_dict[callback.from_user.id]
+    await callback.message.edit_text(
+        LEXICON["start"], reply_markup=create_keyb("online", "offline")
+    )

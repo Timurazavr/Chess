@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <p hidden="hidden" id="script-root">{{ request.script_root|tojson|safe }}</p>
+    <p hidden="hidden" id="session">{{ request.script_root|tojson|safe }}</p>
+    <p hidden="hidden" id="black-field">{{ url_for('static', filename='img/black_field.png') }}</p>
+    <p hidden="hidden" id="white-field">{{ url_for('static', filename='img/white_field.png') }}</p>
+    <p hidden="hidden" id="session">{{ request.script_root|tojson|safe }}</p>
+    <h1 id="test"></h1>
+    <div class="board" id="board">
+        <button class="image-button" id="11"></button>
+        <button class="image-button" id="12"></button>
+        <button class="image-button" id="13"></button>
+        <button class="image-button" id="14"></button>
+        <button class="image-button" id="15"></button>
+        <button class="image-button" id="16"></button>
+        <button class="image-button" id="17"></button>
+        <button class="image-button" id="18"></button>
+        <button class="image-button" id="21"></button>
+        <button class="image-button" id="22"></button>
+        <button class="image-button" id="23"></button>
+        <button class="image-button" id="24"></button>
+        <button class="image-button" id="25"></button>
+        <button class="image-button" id="26"></button>
+        <button class="image-button" id="27"></button>
+        <button class="image-button" id="28"></button>
+        <button class="image-button" id="31"></button>
+        <button class="image-button" id="32"></button>
+        <button class="image-button" id="33"></button>
+        <button class="image-button" id="34"></button>
+        <button class="image-button" id="35"></button>
+        <button class="image-button" id="36"></button>
+        <button class="image-button" id="37"></button>
+        <button class="image-button" id="38"></button>
+        <button class="image-button" id="41"></button>
+        <button class="image-button" id="42"></button>
+        <button class="image-button" id="43"></button>
+        <button class="image-button" id="44"></button>
+        <button class="image-button" id="45"></button>
+        <button class="image-button" id="46"></button>
+        <button class="image-button" id="47"></button>
+        <button class="image-button" id="48"></button>
+        <button class="image-button" id="51"></button>
+        <button class="image-button" id="52"></button>
+        <button class="image-button" id="53"></button>
+        <button class="image-button" id="54"></button>
+        <button class="image-button" id="55"></button>
+        <button class="image-button" id="56"></button>
+        <button class="image-button" id="57"></button>
+        <button class="image-button" id="58"></button>
+        <button class="image-button" id="61"></button>
+        <button class="image-button" id="62"></button>
+        <button class="image-button" id="63"></button>
+        <button class="image-button" id="64"></button>
+        <button class="image-button" id="65"></button>
+        <button class="image-button" id="66"></button>
+        <button class="image-button" id="67"></button>
+        <button class="image-button" id="68"></button>
+        <button class="image-button" id="71"></button>
+        <button class="image-button" id="72"></button>
+        <button class="image-button" id="73"></button>
+        <button class="image-button" id="74"></button>
+        <button class="image-button" id="75"></button>
+        <button class="image-button" id="76"></button>
+        <button class="image-button" id="77"></button>
+        <button class="image-button" id="78"></button>
+        <button class="image-button" id="81"></button>
+        <button class="image-button" id="82"></button>
+        <button class="image-button" id="83"></button>
+        <button class="image-button" id="84"></button>
+        <button class="image-button" id="85"></button>
+        <button class="image-button" id="86"></button>
+        <button class="image-button" id="87"></button>
+        <button class="image-button" id="88"></button>
+    </div>
+    <button id="resign">Resign</button>
+{% endblock %}
+{% block script %}
+    <script type=text/javascript src={{ url_for('static', filename='script/game.js') }}></script>
+{% endblock %}

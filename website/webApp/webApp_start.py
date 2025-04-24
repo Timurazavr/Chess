@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, jsonify, make_response
+from flask import Flask, request, redirect, jsonify, make_response, url_for
 from flask import render_template
 from data import db_session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
@@ -25,7 +25,7 @@ def load_user(user_id):
 
 
 @app.route('/', methods=['GET', 'POST'])
-def start():
+def index():
     if current_user.is_authenticated:
         form = StartGameForm()
         if form.validate_on_submit():
@@ -38,37 +38,50 @@ def start():
 @app.route('/waiting_for_players', methods=['GET'])
 @login_required
 def waiting():
-    # db_sess = db_session.create_session()
-    # if not db_sess.query(GameChess).filter(
-    #         GameChess.white_id == current_user.id or GameChess.black_id == current_user.id).first():
-    #     if len(db_sess.query(GameChess).all()) != 0:
-    #         session = db_sess.query(GameChess).first()
-    #         session.black_id = current_user.id
-    #         db_sess.commit()
-    #         return redirect(f'/session/{session.id}')
-    #     session = GameChess(
-    #         white_id=current_user.id,
-    #     )
-    #     db_sess.add(session)
-    #     db_sess.commit()
-    return render_template('waiting.html')
+    if current_user.is_authenticated:
+        if not request.script_root:
+            request.root_path = url_for('index', _external=True)
+        db_sess = db_session.create_session()
+        try:
+            sess = db_sess.query(GameChess).filter(
+                GameChess.white_id == current_user.id or GameChess.black_id == current_user.id).first()
+            if sess.black_id != -1:
+                return redirect(f'/session/{sess.id}')
+        except Exception:
+            if len(db_sess.query(GameChess).all()) != 0:
+                session = db_sess.query(GameChess).first()
+                session.black_id = current_user.id
+                db_sess.commit()
+                return redirect(f'/session/{session.id}')
+            session = GameChess(
+                white_id=current_user.id,
+            )
+            db_sess.add(session)
+            db_sess.commit()
+        return render_template('waiting.html')
+    else:
+        return redirect('/login')
 
 
 @app.route('/check', methods=['GET'])
 @login_required
-# def check():
-#     db_sess = db_session.create_session()
-#     session = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first()
-#     if session.black_id == -1:
-#         return jsonify(start_game=False)
-#     return jsonify(start_game=True, session=session.id)
 def check():
-    return jsonify(start_game=False)
+    db_sess = db_session.create_session()
+    session = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first()
+    if session.black_id == -1:
+        return jsonify(start_game=False)
+    enemy = db_sess.query(User).filter(User.id == session.black_id).first()
+    return jsonify(start_game=True, session=session.id, enemy=enemy.nickname)
 
 
 @app.route("/session/<session_id>", methods=['GET'])
-def cookie_test(session_id):
-    return 0
+def session(session_id):
+    if current_user.is_authenticated:
+        if not request.script_root:
+            request.root_path = url_for('index', _external=True)
+        return render_template('session.html')
+    else:
+        return redirect('/login')
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -113,6 +126,20 @@ def login():
 def logout():
     logout_user()
     return redirect("/")
+
+
+@app.route('/test')
+def test():
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    return render_template('session.html')
+
+
+@app.route('/get_colour')
+def get_colour():
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    return jsonify(colour='black')  # todo
 
 
 def main():

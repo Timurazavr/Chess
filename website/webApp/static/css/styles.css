@@ -1,27 +1,12 @@
-.general_content_holder {
-    margin: 2vh 3vw;
+.image-button {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background-size: cover;
 }
-
-.level4 {
-    color: lime;
-    margin-left: 20px;
-}
-
-.list {
-    margin-left: 40px;
-}
-
-.table {
-    width: 80vw;
-    height: 50px;
-    margin: 2vw 15px;
-    border: gray solid 2px;
-}
-
-.table_head {
-    background-color: silver;
-}
-
-.table_data {
-    background-color: #8686fc;
+.board {
+    display: grid;
+    grid-template-rows: repeat(8, 30px);
+    grid-template-columns: repeat(8, 30px);
+    /*grid-gap: 1px;*/
 }

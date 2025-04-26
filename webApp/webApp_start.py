@@ -18,6 +18,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 
+def replace_instances(text: str, lis: [str]):
+    for i in lis:
+        text = text.replace(i, '')
+    return text
+
+
 @login_manager.user_loader
 def load_user(user_id):
     db_sess = db_session.create_session()
@@ -135,15 +141,26 @@ def test():
     return render_template('session.html')
 
 
-@app.route('/get_colour/<session_id>')
+@app.route('/get_session_data/<session_id>')
 def get_colour(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
     db_sess = db_session.create_session()
-    if db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first():
-        return jsonify(colour='white')
-    else:
-        return jsonify(colour='black')
+    colour = 'white' if db_sess.query(GameChess).filter(
+        GameChess.id == session_id).first().white_id == current_user.id else 'black'
+    board = replace_instances(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board,
+                              ['[', ']', ',', ' ', '\n'])[1:-1]
+    print(colour)
+    return jsonify(colour=colour, board=board)
+
+
+@app.route('/get_board/<session_id>')
+def get_board(session_id):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    return jsonify(board=replace_instances(
+        db_session.create_session().query(GameChess).filter(GameChess.id == session_id).first().board,
+        ['[', ']', ',', ' ', '\n'])[1:-1]) # todo разобраться с асинхронностью
 
 
 def main():

@@ -11,12 +11,11 @@ class GameChess(SqlAlchemyBase):
     white_id = sqlalchemy.Column(sqlalchemy.Integer)
     black_id = sqlalchemy.Column(sqlalchemy.Integer, default=-1)
     whose_turn = sqlalchemy.Column(sqlalchemy.String, default='White')
-    board = sqlalchemy.Column(sqlalchemy.String, default=str([['BR', 'BN', 'BB', 'BQ', 'BK', 'BB', 'BN', 'BR'],
-                                                              ['BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP'],
-                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
-                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
-                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
-                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
+    board = sqlalchemy.Column(sqlalchemy.String, default=str([['WR', 'WN', 'WB', 'WQ', 'WK', 'WB', 'WN', 'WR'],
                                                               ['WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP'],
-                                                              ['WR', 'WN', 'WB', 'WQ', 'WK', 'WB', 'WN', 'WR']
-                                                              ]))
+                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
+                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
+                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
+                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
+                                                              ['BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP'],
+                                                              ['BR', 'BN', 'BB', 'BQ', 'BK', 'BB', 'BN', 'BR']]))

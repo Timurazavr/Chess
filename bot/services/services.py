@@ -3,7 +3,6 @@ from lexicon.lexicon import LEXICON
 
 class Chess:
     def __init__(self):
-        self.who_walking = "white"
         self.field = [
             [
                 Rook(0, 0, color="black"),
@@ -32,15 +31,19 @@ class Chess:
                 Rook(7, 7, color="white"),
             ],
         ]
+        self.white_king = self.field[7][4]  # Переменная белого короля
+        self.black_king = self.field[0][4]  # Переменная чёрного короля
+        self.who_walking = "white"  # Переменная для отслеживания какой цвет ходит
+        self.is_finished = None  # Переменная для отслеживания окончена ли игра
 
-    def can_move(self, x, y):
+    def is_figure(self, x, y):
         if self.field[y][x] is None:
             return False
         if self.who_walking != self.field[y][x].color:
             return False
         return True
 
-    def move(self, x, y, new_x, new_y):
+    def can_move(self, x, y, new_x, new_y):
         if self.field[y][x] is None:
             return False
         if self.who_walking != self.field[y][x].color:
@@ -48,28 +51,33 @@ class Chess:
         if not self.field[y][x].can_move(new_x, new_y, self.field):
             return False
 
+        self.field[y][x].x, self.field[y][x].y = new_x, new_y
+        old = self.field[new_y][new_x]
+        self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
+        shah_figure = self.is_shah(self.who_walking)
+        self.field[y][x], self.field[new_y][new_x] = self.field[new_y][new_x], old
+        self.field[y][x].x, self.field[y][x].y = x, y
+
+        if shah_figure is not None:
+            return False
+
+        return True
+
+    def move(self, x, y, new_x, new_y):
+        if not self.can_move(x, y, new_x, new_y):
+            return
+
         self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
         self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y
 
-        shah_figure = self.is_shah(self.who_walking)
-        if shah_figure is not None:
-            self.field[y][x], self.field[new_y][new_x] = self.field[new_y][new_x], None
-            self.field[y][x].x, self.field[y][x].y = x, y
-            return False
-
         self.who_walking = "black" if self.who_walking == "white" else "white"
-        return True
+        self.is_mate()
 
     def is_shah(self, color):
-        flag_search = False
-        for i in self.field:
-            for j in i:
-                if not flag_search and isinstance(j, King) and j.color == color:
-                    x, y = j.x, j.y
-                    flag_search = True
-                    break
-            if flag_search:
-                break
+        if color == "white":
+            x, y = self.white_king.x, self.white_king.y
+        else:
+            x, y = self.black_king.x, self.black_king.y
 
         for i in range(8):
             for j in range(8):
@@ -87,8 +95,52 @@ class Chess:
                     ):
                         return self.field[i][j]
 
-    def is_mate(self, figure):
-        1
+    def is_mate(
+        self,
+    ):
+        shah_figure = self.is_shah(self.who_walking)
+        if shah_figure is None:
+            return
+        if self.who_walking == "white":
+            x, y = self.white_king.x, self.white_king.y
+        else:
+            x, y = self.black_king.x, self.black_king.y
+
+        for i in range(max(y - 1, 0), min(y + 1, 7) + 1):
+            for j in range(max(x - 1, 0), min(x + 1, 7) + 1):
+                if self.can_move(x, y, j, i):
+                    return
+
+        if isinstance(shah_figure, Knight):
+            for i in range(8):
+                for j in range(8):
+                    if (
+                        self.field[i][j] is not None
+                        and self.field[i][j].color == self.who_walking
+                        and not isinstance(self.field[i][j], King)
+                        and self.field[i][j].can_move(x, y, self.field)
+                    ):
+                        return
+        else:
+            x1, y1 = shah_figure.x, shah_figure.y
+            x2, y2 = x, y
+            step_x, step_y = abs(x2 - x1) // (x2 - x1), abs(y2 - y1) // (y2 - y1)
+            for i in range(8):
+                for j in range(8):
+                    if (
+                        self.field[i][j] is not None
+                        and self.field[i][j].color == self.who_walking
+                        and not isinstance(self.field[i][j], King)
+                    ):
+                        x1, y1 = shah_figure.x, shah_figure.y
+                        while x1 != x2 or y1 != y2:
+                            if self.field[i][j].can_move(x1, y1, self.field):
+                                return
+                            if x1 != x2:
+                                x1 += step_x
+                            if y1 != y2:
+                                y1 += step_y
+        self.is_finished = "black" if self.who_walking == "white" else "white"
 
 
 class Figure:

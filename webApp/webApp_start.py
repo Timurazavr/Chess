@@ -1,3 +1,5 @@
+import asyncio
+
 from flask import Flask, request, redirect, jsonify, make_response, url_for
 from flask import render_template
 from data import db_session
@@ -160,7 +162,7 @@ def get_board(session_id):
         request.root_path = url_for('index', _external=True)
     return jsonify(board=replace_instances(
         db_session.create_session().query(GameChess).filter(GameChess.id == session_id).first().board,
-        ['[', ']', ',', ' ', '\n'])[1:-1]) # todo разобраться с асинхронностью
+        ['[', ']', ',', ' ', '\n'])[1:-1])  # todo разобраться с асинхронностью
 
 
 def main():

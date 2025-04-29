@@ -37,6 +37,7 @@ function start() {
         let element = document.getElementById(String(i))
         element.style.gridColumn = String(col(i));
         element.style.gridRow = String(row(i));
+        element.onclick = pressed_fields(i)
     }
     update_board()
     fetching_and_waiting()
@@ -65,7 +66,6 @@ function update_board() {
         } else {
             colour = 'B'
         }
-        // console.log(window.g_board, i, window.ids.indexOf(i))
         let texture = window.g_board[window.ids.indexOf(i)]
         if (texture === '--') {
             texture = 'F'
@@ -74,4 +74,31 @@ function update_board() {
     }
 }
 
+function pressed_fields(i) {
+    if (pushed.length === 1) {
+        let legit
+        let mate
+        let stalemate
+        let check
+        $.getJSON(`/movement/${window.session_id}&${pushed[0]}&${i}`, function (data) {
+        }).done(function (data) {
+            legit = data.legit
+            if (legit) {
+                mate = data.mate
+                stalemate = data.stalemate
+                check = data.check
+            }
+        }).fail(function (jqXHR, textStatus, err) {
+            console.log('error_waiting');
+        });
+        if (legit) {
+            return
+        }
+    } else {
+        pushed.push(i)
+    }
+
+}
+
+let pushed = []
 window.onload = start;

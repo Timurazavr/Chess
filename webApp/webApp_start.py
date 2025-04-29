@@ -162,7 +162,31 @@ def get_board(session_id):
         request.root_path = url_for('index', _external=True)
     return jsonify(board=replace_instances(
         db_session.create_session().query(GameChess).filter(GameChess.id == session_id).first().board,
-        ['[', ']', ',', ' ', '\n'])[1:-1])  # todo разобраться с асинхронностью
+        ['[', ']', ',', ' ', '\n'])[1:-1])
+
+
+@app.route('/movement/<data>')
+def movement(data):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    session_id = data.split('&')[0]
+    cord_from = [int(i) - 1 for i in data.split('&')[1]]
+    cord_to = [int(i) - 1 for i in data.split('&')[2]]
+    SOME_INSTANCE = True  # todo проверка валидности хода => мат\пат\шах
+    mate = False
+    stalemate = False
+    check = False
+    if SOME_INSTANCE:
+        db_sess = db_session.create_session()
+        game = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
+        board = eval(game.board)
+        board[cord_to[1]][cord_to[0]] = board[cord_from[1]][cord_from[0]]
+        board[cord_from[1]][cord_from[0]] = '--'
+        game.board = str(board)
+        db_sess.commit()
+        return jsonify(legit=True, stalemate=stalemate, mate=mate, check=check)
+    else:
+        return jsonify(legit=False)
 
 
 def main():

@@ -3,15 +3,15 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from lexicon.lexicon import LEXICON
 
 
-def create_keyb(*buttons: str) -> InlineKeyboardMarkup:
-    keyb: InlineKeyboardBuilder = InlineKeyboardBuilder()
-    keyb.row(
+def create_keyboard(*buttons: str) -> InlineKeyboardMarkup:
+    keyboard: InlineKeyboardBuilder = InlineKeyboardBuilder()
+    keyboard.row(
         *[
             InlineKeyboardButton(text=LEXICON.get(b, b), callback_data=b)
             for b in buttons
         ]
     )
-    return keyb.as_markup()
+    return keyboard.as_markup()
 
 
 def create_keyboard_chess(field) -> InlineKeyboardMarkup:

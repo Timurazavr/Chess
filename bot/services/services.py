@@ -1,6 +1,7 @@
 from lexicon.lexicon import LEXICON
 
 
+# Написать рокировку, взятие на проходе, перевоплощение пешки на конце доски
 class Chess:
     def __init__(self):
         self.field = [
@@ -37,6 +38,7 @@ class Chess:
         self.is_finished = None  # Переменная для отслеживания окончена ли игра
 
     def is_figure(self, x, y):
+        """Проверка есть фигура в клетке и принадлежит ли она цвету, который сейчас ходит"""
         if self.field[y][x] is None:
             return False
         if self.who_walking != self.field[y][x].color:
@@ -44,13 +46,14 @@ class Chess:
         return True
 
     def can_move(self, x, y, new_x, new_y):
-        if self.field[y][x] is None:
-            return False
-        if self.who_walking != self.field[y][x].color:
+        """Проверка может ли фигура сходить"""
+        if not self.is_figure(x, y):
             return False
         if not self.field[y][x].can_move(new_x, new_y, self.field):
+            # Может ли фигура переместиться в данную клетку
             return False
 
+        # Может ли сходить фигура так, чтобы короля не срубили в следующем ходу
         self.field[y][x].x, self.field[y][x].y = new_x, new_y
         old = self.field[new_y][new_x]
         self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
@@ -59,13 +62,15 @@ class Chess:
         self.field[y][x].x, self.field[y][x].y = x, y
 
         if shah_figure is not None:
-            return False
+            return "shah"
 
         return True
 
     def move(self, x, y, new_x, new_y):
-        if not self.can_move(x, y, new_x, new_y):
-            return
+        """Перемещение фигуры"""
+        can_move = self.can_move(x, y, new_x, new_y)
+        if can_move != True:
+            return self.can_move(x, y, new_x, new_y)
 
         self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
         self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y
@@ -74,6 +79,7 @@ class Chess:
         self.is_mate()
 
     def is_shah(self, color):
+        """Обьявлен ли королю шах"""
         if color == "white":
             x, y = self.white_king.x, self.white_king.y
         else:
@@ -98,6 +104,7 @@ class Chess:
     def is_mate(
         self,
     ):
+        """Обьявлен ли королю шах и мат"""
         shah_figure = self.is_shah(self.who_walking)
         if shah_figure is None:
             return

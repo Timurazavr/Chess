@@ -2,7 +2,7 @@ from aiogram import F, Router, Bot
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 from lexicon.lexicon import LEXICON
-from keyboards.pagination_kb import create_keyb, create_keyboard_chess
+from keyboards.pagination_kb import create_keyboard, create_keyboard_chess
 from databases.database import is_user_exists, get_user, add_user, chang_user
 from services.services import session_dict, Chess
 
@@ -14,7 +14,8 @@ async def process_start_command(message: Message, bot: Bot):
     await message.delete()
     message_id = (
         await message.answer(
-            LEXICON["start"], reply_markup=create_keyb("online_data", "offline_data")
+            LEXICON["start"],
+            reply_markup=create_keyboard("online_data", "offline_data"),
         )
     ).message_id
     if is_user_exists(message.from_user.id):
@@ -49,7 +50,7 @@ async def process_online_press(callback: CallbackQuery):
 async def process_konch_press(callback: CallbackQuery):
     y1, x1 = map(int, callback.message.text)
     y2, x2 = map(int, callback.data[-2:])
-    session_dict[callback.from_user.id].move(x1, y1, x2, y2)
+    result = session_dict[callback.from_user.id].move(x1, y1, x2, y2)
     if session_dict[callback.from_user.id].is_finished is None:
         await callback.message.edit_text(
             text=LEXICON["motion_" + session_dict[callback.from_user.id].who_walking],
@@ -57,6 +58,8 @@ async def process_konch_press(callback: CallbackQuery):
                 session_dict[callback.from_user.id].field
             ),
         )
+        if result == "shah":
+            callback.answer(LEXICON["shah_error"])
     else:
         await callback.message.edit_text(
             text=LEXICON["finish_" + session_dict[callback.from_user.id].is_finished],
@@ -86,5 +89,5 @@ async def process_konch_press(callback: CallbackQuery):
 async def process_end_game_press(callback: CallbackQuery):
     del session_dict[callback.from_user.id]
     await callback.message.edit_text(
-        LEXICON["start"], reply_markup=create_keyb("online_data", "offline_data")
+        LEXICON["start"], reply_markup=create_keyboard("online_data", "offline_data")
     )

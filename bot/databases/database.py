@@ -1,4 +1,5 @@
 import sqlite3
+import json
 
 db: sqlite3.Connection = sqlite3.connect("databases/db.sqlite")
 
@@ -43,3 +44,4 @@ def is_user_exists(id: int) -> bool:
         )"""
     ).fetchone()
     return result[0]
+

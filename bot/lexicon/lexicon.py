@@ -7,6 +7,7 @@ LEXICON: dict[str, str] = {
     "motion_black": "Ход чёрных:",
     "finish_white": "Выиграли белые!",
     "finish_black": "Выиграли чёрные!",
+    "shah_error": "Сделайте другой ход, иначе вашего короля срубят.",
     "end_game_data": "Закончить игру",
     "white": {
         "Pawn": "♙",

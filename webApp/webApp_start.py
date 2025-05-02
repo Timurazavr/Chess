@@ -20,12 +20,6 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 
-def replace_instances(text: str, lis: [str]):
-    for i in lis:
-        text = text.replace(i, '')
-    return text
-
-
 @login_manager.user_loader
 def load_user(user_id):
     db_sess = db_session.create_session()
@@ -144,25 +138,28 @@ def test():
 
 
 @app.route('/get_session_data/<session_id>')
-def get_colour(session_id):
+def get_session_data(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
     db_sess = db_session.create_session()
     colour = 'white' if db_sess.query(GameChess).filter(
         GameChess.id == session_id).first().white_id == current_user.id else 'black'
-    board = replace_instances(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board,
-                              ['[', ']', ',', ' ', '\n'])[1:-1]
-    print(colour)
-    return jsonify(colour=colour, board=board)
+    position = eval(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board)
+    board = position[-1].split()[0]
+    whose_turn = 'white' if position[-1].split()[1] == 'w' else 'black'
+    # todo возможные ходы для каждой фигуры
+    return jsonify(colour=colour, board=board, whose_turn=whose_turn)
 
 
 @app.route('/get_board/<session_id>')
 def get_board(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
-    return jsonify(board=replace_instances(
-        db_session.create_session().query(GameChess).filter(GameChess.id == session_id).first().board,
-        ['[', ']', ',', ' ', '\n'])[1:-1])
+    # todo возможные ходы для каждой фигуры, твой ли ход
+    return jsonify(
+        board=
+        eval(db_session.create_session().query(GameChess).filter(GameChess.id == session_id).first().board)[-1].split()[
+            0])
 
 
 @app.route('/movement/<data>')
@@ -176,6 +173,7 @@ def movement(data):
     mate = False
     stalemate = False
     check = False
+    draw = False
     if SOME_INSTANCE:
         db_sess = db_session.create_session()
         game = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
@@ -184,7 +182,7 @@ def movement(data):
         board[cord_from[1]][cord_from[0]] = '--'
         game.board = str(board)
         db_sess.commit()
-        return jsonify(legit=True, stalemate=stalemate, mate=mate, check=check)
+        return jsonify(legit=True, stalemate=stalemate, mate=mate, check=check, draw=draw)
     else:
         return jsonify(legit=False)
 

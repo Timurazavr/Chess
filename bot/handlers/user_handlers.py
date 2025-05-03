@@ -2,7 +2,7 @@ from aiogram import F, Router, Bot
 from aiogram.filters import CommandStart
 from aiogram.types import CallbackQuery, Message
 from lexicon.lexicon import LEXICON
-from keyboards.pagination_kb import create_keyb, create_keyboard_chess
+from keyboards.pagination_kb import create_keyboard, create_keyboard_chess
 from databases.database import is_user_exists, get_user, add_user, chang_user
 from services.services import session_dict, Chess
 
@@ -14,7 +14,8 @@ async def process_start_command(message: Message, bot: Bot):
     await message.delete()
     message_id = (
         await message.answer(
-            LEXICON["start"], reply_markup=create_keyb("online", "offline")
+            LEXICON["start"],
+            reply_markup=create_keyboard("online_data", "offline_data"),
         )
     ).message_id
     if is_user_exists(message.from_user.id):
@@ -25,7 +26,7 @@ async def process_start_command(message: Message, bot: Bot):
         add_user(message.from_user.id, message_id)
 
 
-@router.callback_query(F.data == "offline")
+@router.callback_query(F.data == "offline_data")
 async def process_offline_press(callback: CallbackQuery):
     if callback.from_user.id not in session_dict:
         session_dict[callback.from_user.id] = Chess()
@@ -35,8 +36,8 @@ async def process_offline_press(callback: CallbackQuery):
     )
 
 
-@router.callback_query(F.data == "online")
-async def process_offline_press(callback: CallbackQuery):
+@router.callback_query(F.data == "online_data")
+async def process_online_press(callback: CallbackQuery):
     await callback.answer("Пока недоступно", True)
 
 
@@ -48,25 +49,34 @@ async def process_offline_press(callback: CallbackQuery):
 )
 async def process_konch_press(callback: CallbackQuery):
     y1, x1 = map(int, callback.message.text)
-    y2, x2 = map(int, callback.data)
-    session_dict[callback.from_user.id].move(x1, y1, x2, y2)
-    await callback.message.edit_text(
-        text=LEXICON["motion_" + session_dict[callback.from_user.id].who_walking],
-        reply_markup=create_keyboard_chess(session_dict[callback.from_user.id].field),
-    )
-
-
-@router.callback_query(
-    lambda x: x.data.isdigit()
-    and len(x.data) == 2
-    and 0 <= int(x.data[0]) <= 7
-    and 0 <= int(x.data[1]) <= 7
-)
-async def process_konch_press(callback: CallbackQuery):
-    y, x = map(int, callback.data)
-    if session_dict[callback.from_user.id].can_move(x, y):
+    y2, x2 = map(int, callback.data[-2:])
+    result = session_dict[callback.from_user.id].move(x1, y1, x2, y2)
+    if session_dict[callback.from_user.id].is_finished is None:
         await callback.message.edit_text(
-            text=callback.data,
+            text=LEXICON["motion_" + session_dict[callback.from_user.id].who_walking],
+            reply_markup=create_keyboard_chess(
+                session_dict[callback.from_user.id].field
+            ),
+        )
+        if result == "shah":
+            callback.answer(LEXICON["shah_error"])
+    else:
+        await callback.message.edit_text(
+            text=LEXICON["finish_" + session_dict[callback.from_user.id].is_finished],
+            reply_markup=create_keyboard_chess(
+                session_dict[callback.from_user.id].field
+            ),
+        )
+
+
+@router.callback_query(F.data.startswith("field"))
+async def process_konch_press(callback: CallbackQuery):
+    y, x = map(int, callback.data[-2:])
+    if session_dict[callback.from_user.id].is_finished is None and session_dict[
+        callback.from_user.id
+    ].is_figure(x, y):
+        await callback.message.edit_text(
+            text=callback.data[-2:],
             reply_markup=create_keyboard_chess(
                 session_dict[callback.from_user.id].field
             ),
@@ -75,9 +85,9 @@ async def process_konch_press(callback: CallbackQuery):
         await callback.answer()
 
 
-@router.callback_query(F.data == "end_game_btn")
-async def process_offline_press(callback: CallbackQuery):
+@router.callback_query(F.data == "end_game_data")
+async def process_end_game_press(callback: CallbackQuery):
     del session_dict[callback.from_user.id]
     await callback.message.edit_text(
-        LEXICON["start"], reply_markup=create_keyb("online", "offline")
+        LEXICON["start"], reply_markup=create_keyboard("online_data", "offline_data")
     )

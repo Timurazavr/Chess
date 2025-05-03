@@ -1,0 +1,13 @@
+.image-button {
+    width: calc((min(100vw, 100vh) / 10));
+    height: calc((min(100vw, 100vh) / 10));
+    border: none;
+    background-size: cover;
+}
+
+.board {
+    display: grid;
+    position: absolute;
+    grid-template-rows: repeat(8, auto);
+    grid-template-columns: repeat(8, auto);
+}

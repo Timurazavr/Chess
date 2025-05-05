@@ -1,5 +1,4 @@
-import sys, pathlib, os
+import sys, pathlib, os, asyncio
 
 if __name__ == '__main__':
-    os.system('python3 webApp/webApp_start.py')
-    os.system('python3 bot/main.py')
+    asyncio.gather(*[asyncio.create_task(os.system(i)) for i in ['python3 webApp/webApp_start.py', 'python3 bot/main.py']])

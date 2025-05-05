@@ -156,17 +156,21 @@ def movement(data):
     SOME_INSTANCE = True  # todo проверка валидности хода => мат\пат\шах\ничья
     mate = False
     stalemate = False
-    check = False
+    shah = False
     draw = False
     if SOME_INSTANCE:
         db_sess = db_session.create_session()
         game = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
+        whose_turn = 'white' if eval(game.board)[-1].split()[1] == 'w' else 'black'
+
+        #новая позиция
         board = eval(game.board)[-1].split()[0]
-        board[cord_to[0]*9+cord_to[1]] = board[cord_from[0]*9+cord_from[1]]
-        board[cord_from[0]*9+cord_from[1]] = 'F'
-        game.board = str(board)
+        board[cord_to[0] * 9 + cord_to[1]] = board[cord_from[0] * 9 + cord_from[1]]
+        board[cord_from[0] * 9 + cord_from[1]] = 'F'
+        game.board = str(f'{board} {"w" if whose_turn == "white" else "b"} KQkq - 1')
         db_sess.commit()
-        return jsonify(legit=True, stalemate=stalemate, mate=mate, check=check, draw=draw)
+
+        return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw)
     else:
         return jsonify(legit=False)
 

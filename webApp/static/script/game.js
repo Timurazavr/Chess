@@ -70,12 +70,13 @@ function update_board() {
 }
 
 function pressed_fields(i) {
+    console.log(whose_turn === colour, i)
     if (whose_turn === colour) {
         if (pushed.length === 1) {
             let legit
             let mate
             let stalemate
-            let check
+            let shah
             let draw
             $.getJSON(`/movement/${session_id}&${pushed[0]}&${i}`, function (data) {
             }).done(function (data) {
@@ -83,7 +84,7 @@ function pressed_fields(i) {
                 if (legit) {
                     mate = data.mate
                     stalemate = data.stalemate
-                    check = data.check
+                    shah = data.shah
                     draw = data.draw
                 }
             }).fail(function (jqXHR, textStatus, err) {

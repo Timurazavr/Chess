@@ -153,7 +153,7 @@ def movement(data):
     session_id = data.split('&')[0]
     cord_from = [int(i) - 1 for i in data.split('&')[1]]
     cord_to = [int(i) - 1 for i in data.split('&')[2]]
-    SOME_INSTANCE = True  # todo проверка валидности хода => мат\пат\шах
+    SOME_INSTANCE = True  # todo проверка валидности хода => мат\пат\шах\ничья
     mate = False
     stalemate = False
     check = False
@@ -161,9 +161,9 @@ def movement(data):
     if SOME_INSTANCE:
         db_sess = db_session.create_session()
         game = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
-        board = eval(game.board)
-        board[cord_to[1]][cord_to[0]] = board[cord_from[1]][cord_from[0]]
-        board[cord_from[1]][cord_from[0]] = '--'
+        board = eval(game.board)[-1].split()[0]
+        board[cord_to[0]*9+cord_to[1]] = board[cord_from[0]*9+cord_from[1]]
+        board[cord_from[0]*9+cord_from[1]] = 'F'
         game.board = str(board)
         db_sess.commit()
         return jsonify(legit=True, stalemate=stalemate, mate=mate, check=check, draw=draw)

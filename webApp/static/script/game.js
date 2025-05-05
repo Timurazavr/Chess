@@ -1,11 +1,13 @@
 function start() {
+    $SCRIPT_ROOT = document.getElementById('script-root').innerText.replaceAll('"', '');
+    session_id = document.getElementById('session').innerText;
     $.ajaxSetup({
         async: false
     });
     $.getJSON(`/get_session_data/${session_id}`, function (data) {
     }).done(function (data) {
-        colour = data.colour === 'white'
-        g_board = data.board.replace('1', 'E').replace('2', 'EE').replace('3', 'EEE').replace('4', 'EEEE').replace('5', 'EEEEE').replace('6', 'EEEEEE').replace('7', 'EEEEEEE').replace('8', 'EEEEEEEE')
+        colour = data.colour
+        g_board = data.board.split('/')
         whose_turn = data.whose_turn
     }).fail(function (jqXHR, textStatus, err) {
         console.log('error_start');
@@ -14,7 +16,7 @@ function start() {
     let row
     console.log(colour)
     console.log(g_board)
-    if (colour) {
+    if (colour === 'white') {
         col = function (i) {
             return (i % 10)
         }
@@ -43,7 +45,7 @@ function fetching_and_waiting() {
     let board_db = []
     $.getJSON(`/get_board/${session_id}`, function (data) {
     }).done(function (data) {
-        board_db = data.board.replace('1', 'E').replace('2', 'EE').replace('3', 'EEE').replace('4', 'EEEE').replace('5', 'EEEEE').replace('6', 'EEEEEE').replace('7', 'EEEEEEE').replace('8', 'EEEEEEEE')
+        board_db = data.board.split('/')
     }).fail(function (jqXHR, textStatus, err) {
         console.log('error_waiting');
     });
@@ -56,14 +58,14 @@ function fetching_and_waiting() {
 
 function update_board() {
     for (let i of ids) {
-        let colour
+        let colour_local
         if ((~~(i / 10) + i % 10) % 2 === 0) {
-            colour = 'W'
+            colour_local = 'W'
         } else {
-            colour = 'B'
+            colour_local = 'B'
         }
-        let texture = g_board[~~(ids.indexOf(i) / 8) * 9 + ids.indexOf(i) % 8 - 1]
-        document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/not_good_figures/${colour}${texture}.png)`
+        let texture = g_board[8 - ~~(i / 10)][i % 10 - 1]
+        document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/${colour_local}_field/${texture}.png)`
     }
 }
 
@@ -100,14 +102,13 @@ function pressed_fields(i) {
             pushed.push(i)
         }
     }
-
 }
 
 let whose_turn
 let colour
 let g_board
-let $SCRIPT_ROOT = document.getElementById('script-root').innerText.replaceAll('"', '');
-let session_id = document.getElementById('session').innerText;
+let $SCRIPT_ROOT
+let session_id
 let ids = [11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48, 51, 52, 53, 54, 55, 56, 57, 58, 61, 62, 63, 64, 65, 66, 67, 68, 71, 72, 73, 74, 75, 76, 77, 78, 81, 82, 83, 84, 85, 86, 87, 88];
 let pushed = []
 window.onload = start;

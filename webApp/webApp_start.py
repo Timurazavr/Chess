@@ -134,7 +134,6 @@ def get_session_data(session_id):
     position = eval(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board)
     board = position[-1].split()[0]
     whose_turn = 'white' if position[-1].split()[1] == 'w' else 'black'
-    # todo возможные ходы для каждой фигуры
     return jsonify(colour=colour, board=board, whose_turn=whose_turn)
 
 
@@ -142,8 +141,12 @@ def get_session_data(session_id):
 def get_board(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
-    # todo возможные ходы для каждой фигуры, твой ли ход
-    return jsonify(board=eval(db_session.create_session().query(GameChess).filter(GameChess.id == session_id).first().board)[-1].split()[0])
+    mate = False
+    stalemate = False
+    shah = False
+    draw = False
+    to_who = 'white'  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
+    return jsonify(board=eval(db_session.create_session().query(GameChess).filter(GameChess.id == session_id).first().board)[-1].split()[0], mate=mate, stalemate=stalemate, shah=shah, draw=draw, to_who=to_who)
 
 
 @app.route('/movement/<data>')
@@ -153,26 +156,21 @@ def movement(data):
     session_id = data.split('&')[0]
     cord_from = [int(i) - 1 for i in data.split('&')[1]]
     cord_to = [int(i) - 1 for i in data.split('&')[2]]
-    SOME_INSTANCE = True  # todo проверка валидности хода => мат\пат\шах\ничья
+    SOME_INSTANCE = True  # todo проверка валидности хода, если валиден то сделать ход в д, ДОСКА МЕНЯЕТСЯ В КЛАССЕ ЛОГИКИ
+    return jsonify(legit=SOME_INSTANCE)
+
+
+@app.route('/get_statement/<data>')
+def get_statement(data):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    session_id = data.split('&')[0]
+    colour = data.split('&')[1]
     mate = False
     stalemate = False
     shah = False
     draw = False
-    if SOME_INSTANCE:
-        db_sess = db_session.create_session()
-        game = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
-        whose_turn = 'white' if eval(game.board)[-1].split()[1] == 'w' else 'black'
-
-        #новая позиция
-        board = eval(game.board)[-1].split()[0]
-        board[cord_to[0] * 9 + cord_to[1]] = board[cord_from[0] * 9 + cord_from[1]]
-        board[cord_from[0] * 9 + cord_from[1]] = 'F'
-        game.board = str(f'{board} {"w" if whose_turn == "white" else "b"} KQkq - 1')
-        db_sess.commit()
-
-        return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw)
-    else:
-        return jsonify(legit=False)
+    return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw)
 
 
 def main():

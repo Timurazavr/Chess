@@ -10,7 +10,7 @@ function start() {
         g_board = data.board.split('/')
         whose_turn = data.whose_turn
     }).fail(function (jqXHR, textStatus, err) {
-        console.log('error_start');
+        console.log('error: get_session_data');
     });
     let col
     let row
@@ -35,22 +35,66 @@ function start() {
         let element = document.getElementById(String(i))
         element.style.gridColumn = String(col(i));
         element.style.gridRow = String(row(i));
-        element.onclick = pressed_fields(i)
+        element.onclick = () => pressed_fields(i)
     }
     update_board()
     fetching_and_waiting()
 }
 
-function fetching_and_waiting() {
-    let board_db = []
+function fetching_and_waiting() { // checks everytime if there was new move or
+    let board_db
+
     $.getJSON(`/get_board/${session_id}`, function (data) {
     }).done(function (data) {
         board_db = data.board.split('/')
     }).fail(function (jqXHR, textStatus, err) {
         console.log('error_waiting');
     });
-    if (board_db !== g_board) {
+    if (board_db.toString() !== g_board.toString()) {
+        console.log(g_board)
+        console.log(board_db)
         g_board = board_db
+        let mate
+        let shah
+        let stalemate
+        let draw
+        let to_who
+        $.getJSON(`/get_statement/${session_id}&${colour}`, function (data) {
+        }).done(function (data) {
+            mate = data.mate
+            shah = data.shah
+            stalemate = data.stalemate
+            draw = data.draw
+            to_who = data.to_who
+        }).fail(function (jqXHR, textStatus, err) {
+            console.log('error: get_statement');
+        });
+        if (whose_turn === 'white') {
+            whose_turn = 'black'
+        } else {
+            whose_turn = 'white'
+        }
+        console.log('whose_turn was changed')
+        if (mate) {
+            game_stopped = true
+            if (to_who === colour) {
+                document.getElementById('statement').innerText = `Мат! Вы проиграли..`
+            } else {
+                document.getElementById('statement').innerText = `Мат! Вы выйграли!`
+            }
+        } else if (shah && to_who === colour) {
+            document.getElementById('statement').innerText = `Шах! Ходите аккуратно.`
+        } else if (stalemate) {
+            document.getElementById('statement').innerText = `Пат! Кому-то из вас сейчас очень обидно..`
+        } else if (draw) {
+            document.getElementById('statement').innerText = `Ничья! Нечего говорить.`
+        } else {
+            if (whose_turn === colour) {
+                document.getElementById('statement').innerText = `Твой ход.`
+            } else {
+                document.getElementById('statement').innerText = `Ждём хода противника...`
+            }
+        }
         update_board()
     }
     setTimeout(fetching_and_waiting, 1000)
@@ -58,46 +102,29 @@ function fetching_and_waiting() {
 
 function update_board() {
     for (let i of ids) {
-        let colour_local
-        if ((~~(i / 10) + i % 10) % 2 === 0) {
-            colour_local = 'W'
-        } else {
-            colour_local = 'B'
-        }
         let texture = g_board[8 - ~~(i / 10)][i % 10 - 1]
-        document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/${colour_local}_field/${texture}.png)`
+        if ((~~(i / 10) + i % 10) % 2 === 0) {
+            document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/W_field/${texture}.png)`
+        } else {
+            document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/B_field/${texture}.png)`
+        }
     }
 }
 
-function pressed_fields(i) {
+function pressed_fields(i) { // if you pressed 2 valid fields and move is valid site makes move
     console.log(whose_turn === colour, i)
-    if (whose_turn === colour) {
+    if (whose_turn === colour && pushed[0] !== i) {
         if (pushed.length === 1) {
             let legit
-            let mate
-            let stalemate
-            let shah
-            let draw
-            $.getJSON(`/movement/${session_id}&${pushed[0]}&${i}`, function (data) {
+            $.getJSON(`/movement/${session_id}&${pushed[0]}&${i}`, function (daa) {
             }).done(function (data) {
                 legit = data.legit
-                if (legit) {
-                    mate = data.mate
-                    stalemate = data.stalemate
-                    shah = data.shah
-                    draw = data.draw
-                }
             }).fail(function (jqXHR, textStatus, err) {
-                console.log('error_waiting');
+                console.log('error: movement');
             });
             if (legit) {
-                // todo
                 pushed = []
-                if (whose_turn === 'white') {
-                    whose_turn = 'black'
-                } else {
-                    whose_turn = 'white'
-                }
+                console.log('movement was!')
             }
         } else {
             pushed.push(i)
@@ -105,6 +132,7 @@ function pressed_fields(i) {
     }
 }
 
+let game_stopped = false
 let whose_turn
 let colour
 let g_board

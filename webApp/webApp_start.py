@@ -21,7 +21,9 @@ login_manager.init_app(app)
 @login_manager.user_loader
 def load_user(user_id):
     db_sess = db_session.create_session()
-    return db_sess.query(User).get(user_id)
+    usr = db_sess.query(User).get(user_id)
+    db_sess.close()
+    return usr
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -55,6 +57,7 @@ def waiting():
             session = GameChess(white_id=current_user.id, )
             db_sess.add(session)
             db_sess.commit()
+        db_sess.close()
         return render_template('waiting.html')
     else:
         return redirect('/login')
@@ -68,6 +71,7 @@ def check():
     if session.black_id == -1:
         return jsonify(start_game=False)
     enemy = db_sess.query(User).filter(User.id == session.black_id).first()
+    db_sess.close()
     return jsonify(start_game=True, session=session.id, enemy=enemy.nickname)
 
 
@@ -94,6 +98,7 @@ def reqister():
         user.set_password(form.password.data)
         db_sess.add(user)
         db_sess.commit()
+        db_sess.close()
         return redirect('/login')
     return render_template('register.html', title='Регистрация', form=form)
 
@@ -104,6 +109,7 @@ def login():
     if form.validate_on_submit():
         db_sess = db_session.create_session()
         user = db_sess.query(User).filter(User.nickname == form.nickname.data).first()
+        db_sess.close()
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember_me.data)
             return redirect("/")
@@ -134,6 +140,7 @@ def get_session_data(session_id):
     position = eval(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board)
     board = position[-1].split()[0]
     whose_turn = 'white' if position[-1].split()[1] == 'w' else 'black'
+    db_sess.close()
     return jsonify(colour=colour, board=board, whose_turn=whose_turn)
 
 
@@ -141,12 +148,15 @@ def get_session_data(session_id):
 def get_board(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
+    db_sess = db_session.create_session()
+    board = eval(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board)[-1].split()[0]
     mate = False
     stalemate = False
     shah = False
     draw = False
     to_who = 'white'  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
-    return jsonify(board=eval(db_session.create_session().query(GameChess).filter(GameChess.id == session_id).first().board)[-1].split()[0], mate=mate, stalemate=stalemate, shah=shah, draw=draw, to_who=to_who)
+    db_sess.close()
+    return jsonify(board=board, mate=mate, stalemate=stalemate, shah=shah, draw=draw, to_who=to_who)
 
 
 @app.route('/movement/<data>')

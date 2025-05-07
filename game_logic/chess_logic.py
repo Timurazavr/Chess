@@ -2,6 +2,7 @@ from copy import deepcopy
 
 
 # Написать рокировку, взятие на проходе, перевоплощение пешки на конце доски
+# + проверка на мат, шах, пат, ничью
 class Chess:
     def __init__(self):
         self.field = [

@@ -1,15 +1,7 @@
-import asyncio
-
 from flask import Flask, request, redirect, jsonify, make_response, url_for
 from flask import render_template
 from data import db_session
-from flask_login import (
-    LoginManager,
-    login_user,
-    logout_user,
-    current_user,
-    login_required,
-)
+from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from data.users import User
 from data.games_chess import GameChess
 from forms.register import RegisterForm
@@ -18,206 +10,177 @@ from forms.start_game import StartGameForm
 
 # for linux absolute path
 # for windows relative path
-PATH_TO_DB_FOLDER = "/home/pashok/PycharmProjects/chess/db"
+PATH_TO_DB_FOLDER = '/home/pashok/PycharmProjects/chess/db'
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "yandexlyceum_secret_key"
+app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 
-def replace_instances(text: str, lis: list[str]):
-    for i in lis:
-        text = text.replace(i, "")
-    return text
-
-
 @login_manager.user_loader
 def load_user(user_id):
     db_sess = db_session.create_session()
-    return db_sess.query(User).get(user_id)
+    usr = db_sess.query(User).get(user_id)
+    db_sess.close()
+    return usr
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route('/', methods=['GET', 'POST'])
 def index():
     if current_user.is_authenticated:
         form = StartGameForm()
         if form.validate_on_submit():
-            return redirect("/waiting_for_players")
-        return render_template("start_game.html", form=form)
+            return redirect('/waiting_for_players')
+        return render_template('start_game.html', form=form)
     else:
-        return redirect("/login")
+        return redirect('/login')
 
 
-@app.route("/waiting_for_players", methods=["GET"])
+@app.route('/waiting_for_players', methods=['GET'])
 @login_required
 def waiting():
     if current_user.is_authenticated:
         if not request.script_root:
-            request.root_path = url_for("index", _external=True)
+            request.root_path = url_for('index', _external=True)
         db_sess = db_session.create_session()
         try:
-            sess = (
-                db_sess.query(GameChess)
-                .filter(
-                    GameChess.white_id == current_user.id
-                    or GameChess.black_id == current_user.id
-                )
-                .first()
-            )
+            sess = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id or GameChess.black_id == current_user.id).first()
             if sess.black_id != -1:
-                return redirect(f"/session/{sess.id}")
+                return redirect(f'/session/{sess.id}')
         except Exception as e:
             if len(db_sess.query(GameChess).all()) != 0:
                 session = db_sess.query(GameChess).first()
                 session.black_id = current_user.id
                 db_sess.commit()
-                return redirect(f"/session/{session.id}")
-            session = GameChess(
-                white_id=current_user.id,
-            )
+                return redirect(f'/session/{session.id}')
+            session = GameChess(white_id=current_user.id, )
             db_sess.add(session)
             db_sess.commit()
-        return render_template("waiting.html")
+        db_sess.close()
+        return render_template('waiting.html')
     else:
-        return redirect("/login")
+        return redirect('/login')
 
 
-@app.route("/check", methods=["GET"])
+@app.route('/check', methods=['GET'])
 @login_required
 def check():
     db_sess = db_session.create_session()
-    session = (
-        db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first()
-    )
+    session = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first()
     if session.black_id == -1:
         return jsonify(start_game=False)
     enemy = db_sess.query(User).filter(User.id == session.black_id).first()
+    db_sess.close()
     return jsonify(start_game=True, session=session.id, enemy=enemy.nickname)
 
 
-@app.route("/session/<session_id>", methods=["GET"])
+@app.route("/session/<session_id>", methods=['GET'])
 def session(session_id):
     if current_user.is_authenticated:
         if not request.script_root:
-            request.root_path = url_for("index", _external=True)
-        return render_template("session.html", session_id=session_id)
+            request.root_path = url_for('index', _external=True)
+        return render_template('session.html', session_id=session_id)
     else:
-        return redirect("/login")
+        return redirect('/login')
 
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route('/register', methods=['GET', 'POST'])
 def reqister():
     form = RegisterForm()
     if form.validate_on_submit():
         if form.password.data != form.password_again.data:
-            return render_template(
-                "register.html",
-                title="Регистрация",
-                form=form,
-                message="Пароли не совпадают",
-            )
+            return render_template('register.html', title='Регистрация', form=form, message="Пароли не совпадают")
         db_sess = db_session.create_session()
         if db_sess.query(User).filter(User.nickname == form.nickname.data).first():
-            return render_template(
-                "register.html",
-                title="Регистрация",
-                form=form,
-                message="Такой пользователь уже есть",
-            )
+            return render_template('register.html', title='Регистрация', form=form, message="Такой пользователь уже есть")
         user = User(nickname=form.nickname.data)
         user.set_password(form.password.data)
         db_sess.add(user)
         db_sess.commit()
-        return redirect("/login")
-    return render_template("register.html", title="Регистрация", form=form)
+        db_sess.close()
+        return redirect('/login')
+    return render_template('register.html', title='Регистрация', form=form)
 
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
         db_sess = db_session.create_session()
         user = db_sess.query(User).filter(User.nickname == form.nickname.data).first()
+        db_sess.close()
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember_me.data)
             return redirect("/")
-        return render_template(
-            "login.html", message="Неправильный логин или пароль", form=form
-        )
-    return render_template("login.html", title="Авторизация", form=form)
+        return render_template('login.html', message="Неправильный логин или пароль", form=form)
+    return render_template('login.html', title='Авторизация', form=form)
 
 
-@app.route("/logout")
+@app.route('/logout')
 def logout():
     logout_user()
     return redirect("/")
 
 
-@app.route("/test")
+@app.route('/test')
 def test():
     if not request.script_root:
-        request.root_path = url_for("index", _external=True)
-    return render_template("session.html")
+        request.root_path = url_for('index', _external=True)
+    return render_template('session.html')
 
 
-@app.route("/get_session_data/<session_id>")
-def get_colour(session_id):
+@app.route('/get_session_data/<session_id>')
+def get_session_data(session_id):
     if not request.script_root:
-        request.root_path = url_for("index", _external=True)
+        request.root_path = url_for('index', _external=True)
     db_sess = db_session.create_session()
-    colour = (
-        "white"
-        if db_sess.query(GameChess).filter(GameChess.id == session_id).first().white_id
-        == current_user.id
-        else "black"
-    )
-    board = replace_instances(
-        db_sess.query(GameChess).filter(GameChess.id == session_id).first().board,
-        ["[", "]", ",", " ", "\n"],
-    )[1:-1]
-    print(colour)
-    return jsonify(colour=colour, board=board)
+    colour = 'white' if db_sess.query(GameChess).filter(
+        GameChess.id == session_id).first().white_id == current_user.id else 'black'
+    position = eval(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board)
+    board = position[-1].split()[0]
+    whose_turn = 'white' if position[-1].split()[1] == 'w' else 'black'
+    db_sess.close()
+    return jsonify(colour=colour, board=board, whose_turn=whose_turn)
 
 
-@app.route("/get_board/<session_id>")
+@app.route('/get_board/<session_id>')
 def get_board(session_id):
     if not request.script_root:
-        request.root_path = url_for("index", _external=True)
-    return jsonify(
-        board=replace_instances(
-            db_session.create_session()
-            .query(GameChess)
-            .filter(GameChess.id == session_id)
-            .first()
-            .board,
-            ["[", "]", ",", " ", "\n"],
-        )[1:-1]
-    )
-
-
-@app.route("/movement/<data>")
-def movement(data):
-    if not request.script_root:
-        request.root_path = url_for("index", _external=True)
-    session_id = data.split("&")[0]
-    cord_from = [int(i) - 1 for i in data.split("&")[1]]
-    cord_to = [int(i) - 1 for i in data.split("&")[2]]
-    SOME_INSTANCE = True  # todo проверка валидности хода => мат\пат\шах
+        request.root_path = url_for('index', _external=True)
+    db_sess = db_session.create_session()
+    board = eval(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board)[-1].split()[0]
     mate = False
     stalemate = False
-    check = False
-    if SOME_INSTANCE:
-        db_sess = db_session.create_session()
-        game = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
-        board = eval(game.board)
-        board[cord_to[1]][cord_to[0]] = board[cord_from[1]][cord_from[0]]
-        board[cord_from[1]][cord_from[0]] = "--"
-        game.board = str(board)
-        db_sess.commit()
-        return jsonify(legit=True, stalemate=stalemate, mate=mate, check=check)
-    else:
-        return jsonify(legit=False)
+    shah = False
+    draw = False
+    to_who = 'white'  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
+    db_sess.close()
+    return jsonify(board=board, mate=mate, stalemate=stalemate, shah=shah, draw=draw, to_who=to_who)
+
+
+@app.route('/movement/<data>')
+def movement(data):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    session_id = data.split('&')[0]
+    cord_from = [int(i) - 1 for i in data.split('&')[1]]
+    cord_to = [int(i) - 1 for i in data.split('&')[2]]
+    SOME_INSTANCE = True  # todo проверка валидности хода, если валиден то сделать ход в д, ДОСКА МЕНЯЕТСЯ В КЛАССЕ ЛОГИКИ
+    return jsonify(legit=SOME_INSTANCE)
+
+
+@app.route('/get_statement/<data>')
+def get_statement(data):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    session_id = data.split('&')[0]
+    colour = data.split('&')[1]
+    mate = False
+    stalemate = False
+    shah = False
+    draw = False
+    return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw)
 
 
 def main():
@@ -225,15 +188,11 @@ def main():
     app.run()
 
 
-def rotate_board(
-    board: [
-        [],
-    ],
-):
+def rotate_board(board: [[], ]):
     return [board[i].reverse() for i in range(7, -1, -1)]
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
 else:
     main()

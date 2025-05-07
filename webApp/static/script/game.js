@@ -112,9 +112,16 @@ function update_board() {
 }
 
 function pressed_fields(i) { // if you pressed 2 valid fields and move is valid site makes move
-    console.log(whose_turn === colour, i)
-    if (whose_turn === colour && pushed[0] !== i) {
-        if (pushed.length === 1) {
+
+    let field = document.getElementById(String(i)).style.backgroundImage.toString().split('/').at(-1).split('.')[0]
+    let press = ((field.toUpperCase() === field) === (colour === 'white')) // нажимаю ли я на свою фигуру
+    if (field === 'F') {
+        press = false
+    }
+    let is_first_push = pushed.length === 0
+    console.log('Мой ли ход:', whose_turn === colour, i, 'Первый ли ход:', is_first_push, 'На свою ли нажал:', press)
+    if (whose_turn === colour && !(field === 'F' && is_first_push) && (press === is_first_push)) {
+        if (!is_first_push) {
             let legit
             $.getJSON(`/movement/${session_id}&${pushed[0]}&${i}`, function (daa) {
             }).done(function (data) {
@@ -129,6 +136,9 @@ function pressed_fields(i) { // if you pressed 2 valid fields and move is valid 
         } else {
             pushed.push(i)
         }
+    } else {
+        pushed = []
+        console.log('bad movement')
     }
 }
 

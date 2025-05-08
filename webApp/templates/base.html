@@ -14,6 +14,7 @@
 <body>
 <div class="general_content_holder">
     <h1>Онлайн шахматы</h1>
+    <p hidden="hidden" id="script-root">{{ (request.script_root|tojson|safe).replace('"', '') }}</p>
     <p hidden="hidden" id="spongebob_link">{{ url_for('static', filename='img/spongebob.gif') }}</p>
     <hr>
     <nav>

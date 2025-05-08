@@ -6,13 +6,13 @@ from data.users import User
 from data.games_chess import GameChess
 from forms.register import RegisterForm
 from forms.login import LoginForm
-from forms.start_game import StartGameForm
 
 # for linux absolute path
 # for windows relative path
 PATH_TO_DB_FOLDER = '/home/pashok/PycharmProjects/chess/db'
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+# IMPORTANT SECRET KEY
+app.config['SECRET_KEY'] = open('static/SECRET_KEY', 'r').read().strip()
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -29,10 +29,9 @@ def load_user(user_id):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if current_user.is_authenticated:
-        form = StartGameForm()
-        if form.validate_on_submit():
-            return redirect('/waiting_for_players')
-        return render_template('start_game.html', form=form)
+        if not request.script_root:
+            request.root_path = url_for('index', _external=True)
+        return render_template('start_game.html')
     else:
         return redirect('/login')
 
@@ -46,16 +45,22 @@ def waiting():
         db_sess = db_session.create_session()
         try:
             sess = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id or GameChess.black_id == current_user.id).first()
-            if sess.black_id != -1:
+            if not sess:
+                raise Exception
+            if sess.black_id == -2:
+                return render_template('waiting.html')
+            elif sess.black_id == -1:
+                pass
+            else:
                 return redirect(f'/session/{sess.id}')
         except Exception as e:
-            if len(db_sess.query(GameChess).all()) != 0:
-                session = db_sess.query(GameChess).first()
-                session.black_id = current_user.id
+            if len(db_sess.query(GameChess).filter(GameChess.black_id == -1).all()) != 0:
+                game = db_sess.query(GameChess).first()
+                game.black_id = current_user.id
                 db_sess.commit()
-                return redirect(f'/session/{session.id}')
-            session = GameChess(white_id=current_user.id, )
-            db_sess.add(session)
+                return redirect(f'/session/{game.id}')
+            game = GameChess(white_id=current_user.id)
+            db_sess.add(game)
             db_sess.commit()
         db_sess.close()
         return render_template('waiting.html')
@@ -68,8 +73,8 @@ def waiting():
 def check():
     db_sess = db_session.create_session()
     session = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first()
-    if session.black_id == -1:
-        return jsonify(start_game=False)
+    if session.black_id <= -1:
+        return jsonify(start_game=False, black_id=session.black_id, session=session.id)
     enemy = db_sess.query(User).filter(User.id == session.black_id).first()
     db_sess.close()
     return jsonify(start_game=True, session=session.id, enemy=enemy.nickname)
@@ -85,8 +90,40 @@ def session(session_id):
         return redirect('/login')
 
 
+@app.route("/way_to_play/<string:way>", methods=['GET'])
+def way_to_play(way: str):
+    if current_user.is_authenticated:
+        if not request.script_root:
+            request.root_path = url_for('index', _external=True)
+        if way == 'random':
+            return redirect('/waiting_for_players')
+        elif way.isnumeric():
+            db_sess = db_session.create_session()
+            try:
+                sess = db_sess.query(GameChess).filter(GameChess.id == int(way)).first()
+                if sess.black_id == -2:
+                    sess.black_id = current_user.id
+                    db_sess.commit()
+                    db_sess.close()
+                    return redirect(f'/session/{int(way)}')
+                else:
+                    raise Exception
+            except Exception:
+                db_sess.close()
+                return render_template('start_game.html', message='Неправильный id игры')
+        elif way == 'create':
+            db_sess = db_session.create_session()
+            obj = GameChess(white_id=current_user.id, black_id=-2)
+            db_sess.add(obj)
+            db_sess.commit()
+            db_sess.close()
+        return redirect(f'/waiting_for_players')
+    else:
+        return redirect('/login')
+
+
 @app.route('/register', methods=['GET', 'POST'])
-def reqister():
+def register():
     form = RegisterForm()
     if form.validate_on_submit():
         if form.password.data != form.password_again.data:
@@ -135,13 +172,15 @@ def get_session_data(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
     db_sess = db_session.create_session()
-    colour = 'white' if db_sess.query(GameChess).filter(
-        GameChess.id == session_id).first().white_id == current_user.id else 'black'
-    position = eval(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board)
+    session = db_sess.query(GameChess).filter(
+        GameChess.id == session_id).first()
+    colour = 'white' if session.white_id == current_user.id else 'black'
+    position = eval(session.board)
     board = position[-1].split()[0]
+    enemy = db_sess.query(User).filter(User.id == session.black_id).first().nickname
     whose_turn = 'white' if position[-1].split()[1] == 'w' else 'black'
     db_sess.close()
-    return jsonify(colour=colour, board=board, whose_turn=whose_turn)
+    return jsonify(colour=colour, board=board, whose_turn=whose_turn, enemy=enemy)
 
 
 @app.route('/get_board/<session_id>')
@@ -181,6 +220,18 @@ def get_statement(data):
     shah = False
     draw = False
     return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw)
+
+
+@app.route('/get_permission/<data>')
+def get_permission(data):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    db_sess = db_session.create_session()
+    if db_sess.query(GameChess).filter(GameChess.id == data).first():
+        db_sess.close()
+        return jsonify(permission=True)
+    db_sess.close()
+    return jsonify(legit=False)
 
 
 def main():

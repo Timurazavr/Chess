@@ -44,8 +44,10 @@ def waiting():
             request.root_path = url_for('index', _external=True)
         db_sess = db_session.create_session()
         try:
-            sess = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id or GameChess.black_id == current_user.id).first()
+            sess = db_sess.query(GameChess).filter((GameChess.white_id == current_user.id) | (GameChess.black_id == current_user.id)).first()
+            print(sess)
             if not sess:
+                print('bad', current_user.id)
                 raise Exception
             if sess.black_id == -2:
                 return render_template('waiting.html')
@@ -54,6 +56,7 @@ def waiting():
             else:
                 return redirect(f'/session/{sess.id}')
         except Exception as e:
+            print(len(db_sess.query(GameChess).filter(GameChess.black_id == -1).all()))
             if len(db_sess.query(GameChess).filter(GameChess.black_id == -1).all()) != 0:
                 game = db_sess.query(GameChess).first()
                 game.black_id = current_user.id
@@ -73,7 +76,7 @@ def waiting():
 def check():
     db_sess = db_session.create_session()
     session = db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first()
-    if session.black_id <= -1:
+    if session.black_id in [-1, -2]:
         return jsonify(start_game=False, black_id=session.black_id, session=session.id)
     enemy = db_sess.query(User).filter(User.id == session.black_id).first()
     db_sess.close()
@@ -93,6 +96,7 @@ def session(session_id):
 @app.route("/way_to_play/<string:way>", methods=['GET'])
 def way_to_play(way: str):
     if current_user.is_authenticated:
+        print('once')
         if not request.script_root:
             request.root_path = url_for('index', _external=True)
         if way == 'random':
@@ -101,6 +105,8 @@ def way_to_play(way: str):
             db_sess = db_session.create_session()
             try:
                 sess = db_sess.query(GameChess).filter(GameChess.id == int(way)).first()
+                if not sess:
+                    raise Exception
                 if sess.black_id == -2:
                     sess.black_id = current_user.id
                     db_sess.commit()
@@ -113,7 +119,8 @@ def way_to_play(way: str):
                 return render_template('start_game.html', message='Неправильный id игры')
         elif way == 'create':
             db_sess = db_session.create_session()
-            obj = GameChess(white_id=current_user.id, black_id=-2)
+            obj = GameChess(white_id=current_user.id)
+            obj.black_id = -2
             db_sess.add(obj)
             db_sess.commit()
             db_sess.close()
@@ -236,7 +243,7 @@ def get_permission(data):
 
 def main():
     db_session.global_init(PATH_TO_DB_FOLDER + "/data.db")
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
 
 
 def rotate_board(board: [[], ]):

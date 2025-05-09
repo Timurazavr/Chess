@@ -182,9 +182,10 @@ def get_session_data(session_id):
     session = db_sess.query(GameChess).filter(
         GameChess.id == session_id).first()
     colour = 'white' if session.white_id == current_user.id else 'black'
+    enemy_id = session.black_id if colour == 'white' else session.white_id
     position = eval(session.board)
     board = position[-1].split()[0]
-    enemy = db_sess.query(User).filter(User.id == session.black_id).first().nickname
+    enemy = db_sess.query(User).filter(User.id == enemy_id).first().nickname
     whose_turn = 'white' if position[-1].split()[1] == 'w' else 'black'
     db_sess.close()
     return jsonify(colour=colour, board=board, whose_turn=whose_turn, enemy=enemy)
@@ -239,6 +240,19 @@ def get_permission(data):
         return jsonify(permission=True)
     db_sess.close()
     return jsonify(legit=False)
+
+
+@app.route('/get_my_sessions')
+def get_my_sessions():
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    db_sess = db_session.create_session()
+    if db_sess.query(GameChess).filter((GameChess.white_id == current_user.id) | (GameChess.black_id == current_user.id)).first():
+        have_sessions = True
+    else:
+        have_sessions = False
+    db_sess.close()
+    return jsonify(have_sessions=have_sessions)
 
 
 def main():

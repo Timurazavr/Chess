@@ -10,7 +10,7 @@ function start() {
         g_board = data.board.split('/');
         whose_turn = data.whose_turn;
         document.getElementById('enemy_nickname').innerText = 'Противник: ' + data.enemy
-}).fail(function (jqXHR, textStatus, err) {
+    }).fail(function (jqXHR, textStatus, err) {
         console.log('error: get_session_data');
     });
     let col;
@@ -44,12 +44,11 @@ function start() {
 
 function fetching_and_waiting() { // checks everytime if there was new move or
     let board_db;
-
     $.getJSON(`/get_board/${session_id}`, function (data) {
     }).done(function (data) {
         board_db = data.board.split('/');
     }).fail(function (jqXHR, textStatus, err) {
-        console.log('error_waiting');
+        console.log('error: get_board');
     });
     if (board_db.toString() !== g_board.toString()) {
         console.log(g_board);

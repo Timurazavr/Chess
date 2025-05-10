@@ -4,37 +4,106 @@ from copy import deepcopy
 # Написать рокировку, взятие на проходе, перевоплощение пешки на конце доски
 # + проверка на мат, шах, пат, ничью
 class Chess:
-    def __init__(self):
+    def __init__(
+        self, fen_str="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    ):
         self.field = [
+            [None for _ in range(8)] for _ in range(8)
+        ]  # Создаём пустую доску
+
+        # Словарь для преобразования символов FEN в классы фигур
+        piece_map = {
+            "r": Rook,
+            "n": Knight,
+            "b": Bishop,
+            "q": Queen,
+            "k": King,
+            "p": Pawn,
+        }
+
+        # Разбиваем FEN на компоненты
+        fen_parts = fen_str.split()
+        rows = fen_parts[0].split("/")
+
+        # Заполняем поле
+        for y, row in enumerate(rows):
+            y_converted = 7 - y  # FEN начинается с 8-го ряда (y=7 в нашей системе)
+            x = 0
+            for char in row:
+                if char.isdigit():
+                    x += int(char)  # Пропускаем пустые клетки
+                else:
+                    color = "white" if char.isupper() else "black"
+                    piece_class = piece_map[char.lower()]
+                    self.field[y_converted][x] = piece_class(x, y_converted, color)
+                    x += 1
+
+        # Устанавливаем очередь хода
+        self.who_walking = "white" if fen_parts[1] == "w" else "black"
+
+        self.castling_rights = {"K": True, "Q": True, "k": True, "q": True}
+        self.halfmove_clock = int(fen_parts[4])
+        self.fullmove_number = int(fen_parts[5])
+
+        self.to_who = None
+        self.shah = self.is_shah("white") or self.is_shah("black")
+        if self.shah:
+            self.mate = self.is_mate(self.to_who)
+            self.stalemate = False
+            self.draw = False
+        else:
+            self.mate = False
+            self.stalemate = self.is_stalemate()
+            self.draw = self.is_draw()
+
+    def get_fen(self):
+        """Конвертирует текущую позицию в FEN-строку."""
+        piece_map = {
+            Pawn: "p",
+            Rook: "r",
+            Knight: "n",
+            Bishop: "b",
+            Queen: "q",
+            King: "k",
+        }
+        fen_rows = []
+        for row in reversed(self.field):
+            fen_row = []
+            empty = 0
+
+            for cell in row:
+                if cell is None:
+                    empty += 1
+                else:
+                    if empty > 0:
+                        fen_row.append(str(empty))
+                        empty = 0
+                    symbol = piece_map[type(cell)]
+                    fen_row.append(symbol.upper() if cell.color == "white" else symbol)
+
+            if empty > 0:
+                fen_row.append(str(empty))
+            fen_rows.append("".join(fen_row))
+
+        turn = "w" if self.who_walking == "white" else "b"
+
+        # 3-4. Остальные компоненты (заглушки, так как в коде нет этой логики)
+        castling = "-"
+        en_passant = "-"
+
+        halfmove_clock = str(self.halfmove_clock)
+        fullmove_number = str(self.fullmove_number)
+
+        return " ".join(
             [
-                Rook(0, 0, color="black"),
-                Knight(1, 0, color="black"),
-                Bishop(2, 0, color="black"),
-                Queen(3, 0, color="black"),
-                King(4, 0, color="black"),
-                Bishop(5, 0, color="black"),
-                Knight(6, 0, color="black"),
-                Rook(7, 0, color="black"),
-            ],
-            [Pawn(i, 1, color="black") for i in range(8)],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [Pawn(i, 6, color="white") for i in range(8)],
-            [
-                Rook(0, 7, color="white"),
-                Knight(1, 7, color="white"),
-                Bishop(2, 7, color="white"),
-                Queen(3, 7, color="white"),
-                King(4, 7, color="white"),
-                Bishop(5, 7, color="white"),
-                Knight(6, 7, color="white"),
-                Rook(7, 7, color="white"),
-            ],
-        ]
-        self.who_walking = "white"  # Переменная для отслеживания какой цвет ходит
-        self.is_finished = None  # Переменная для отслеживания окончена ли игра
+                "/".join(fen_rows),
+                turn,
+                castling,
+                en_passant,
+                halfmove_clock,
+                fullmove_number,
+            ]
+        )
 
     def find_king_position(self, color):
         for y in range(8):
@@ -60,7 +129,8 @@ class Chess:
         if not self.field[y][x].can_move(new_x, new_y, self.field):
             # Может ли фигура переместиться в данную клетку
             return False
-
+        if isinstance(figure, King) and abs(new_x - x) == 2:
+            return self.can_castle(x, y, new_x, new_y)
         # Может ли сходить фигура так, чтобы короля не срубили в следующем ходу
 
         # Сохраняем состояние
@@ -89,6 +159,14 @@ class Chess:
         if not self.can_move(x, y, new_x, new_y):
             return False
 
+        if self.field[new_y][new_x] or isinstance(self.field[y][x], Pawn):
+            self.halfmove_clock = 0
+        else:
+            self.halfmove_clock += 1
+
+        if self.who_walking == "black":
+            self.fullmove_number += 1
+
         self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
         self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y
 
@@ -102,8 +180,100 @@ class Chess:
             for x in range(8):
                 if self.field[y][x] and self.field[y][x].color != color:
                     if self.field[y][x].can_move(king_x, king_y, self.field):
+                        self.to_who = color
                         return True
         return False
+
+    def is_mate(self, color):
+        """Проверка, находится ли игрок под матом."""
+        if not self.is_shah(color):
+            self.is_finished = False
+            return False
+
+        for y in range(8):
+            for x in range(8):
+                if not self.is_current_player_figure(x, y):
+                    continue
+                for new_y in range(8):
+                    for new_x in range(8):
+                        if self.can_move(x, y, new_x, new_y):
+                            temp_chess = deepcopy(self)
+                            original_color = temp_chess.who_walking
+                            success = temp_chess.move(x, y, new_x, new_y)
+                            if success and not temp_chess.is_shah(original_color):
+                                self.is_finished = False
+                                return False
+        self.is_finished = True
+        return True
+
+    def is_stalemate(self):  # не оптимально, переписать
+        """Проверяет, находится ли игрок в патовой ситуации."""
+
+        # Проверяем, есть ли хотя бы один допустимый ход у игрока
+        for y in range(8):
+            for x in range(8):
+                if not self.is_current_player_figure(x, y):
+                    continue
+                # Проверяем все возможные клетки для хода
+                for new_y in range(8):
+                    for new_x in range(8):
+                        if self.can_move(x, y, new_x, new_y):
+                            return False  # Найден допустимый ход -> пат отсутствует
+        return True  # Нет допустимых ходов -> пат
+
+    def is_draw(self):
+        if self.halfmove_clock >= 100:
+            return True
+
+        pieces = []
+        for row in self.field:
+            for piece in row:
+                if piece:
+                    pieces.append(piece)
+
+        # Только короли
+        if len(pieces) == 2:
+            return True
+
+        # Король + 1 легкая фигура
+        if len(pieces) == 3:
+            for p in pieces:
+                if isinstance(p, (Knight, Bishop)):
+                    return True
+        return False
+
+    def can_castle(self, x, y, new_x, new_y):
+        king = self.field[y][x]
+        if king.moved:
+            return False
+
+        direction = new_x - x
+        rook_x = 7 if direction > 0 else 0
+        rook = self.field[y][rook_x]
+
+        if not isinstance(rook, Rook) or rook.moved:
+            return False
+
+        step = 1 if direction > 0 else -1
+        for dx in range(1, abs(direction)):
+            if self.field[y][x + dx * step] is not None:
+                return False
+
+        if self.is_shah(king.color):
+            return False
+
+        temp_chess = deepcopy(self)
+        temp_king = temp_chess.field[y][x]
+        temp_chess.field[y][x] = None
+        temp_chess.field[y][x + step] = temp_king
+        temp_king.x += step
+        if temp_chess.is_shah(king.color):
+            return False
+
+        temp_chess.field[y][x + step] = None
+        temp_chess.field[y][new_x] = temp_king
+        temp_king.x = new_x
+        return not temp_chess.is_shah(king.color)
 
 
 class Figure:
@@ -186,14 +356,41 @@ class Queen(Figure):  # Ферзь
         return True
 
 
-class King(Figure):  # Король
+class King(Figure):
+    def __init__(self, x: int, y: int, color: str):
+        super().__init__(x, y, color)
+        self.moved = False
+
     def can_move(self, new_x: int, new_y: int, field: list[list]):
-        if not (abs(self.x - new_x) <= 1 and abs(self.y - new_y) <= 1):
+        if field[new_y][new_x] is not None and field[new_y][new_x].color == self.color:
+            # Проверка не пытается ли съесть своих
+            return False
+        dx = abs(new_x - self.x)
+        dy = abs(new_y - self.y)
+        return (dx <= 1 and dy <= 1) or (dy == 0 and dx == 2)
+
+
+class Rook(Figure):
+    def __init__(self, x: int, y: int, color: str):
+        super().__init__(x, y, color)
+        self.moved = False
+
+    def can_move(self, new_x: int, new_y: int, field: list[list]):
+        if not (self.x == new_x or self.y == new_y):
             # Проверка может ли физически переместиться в данную клетку
             return False
         if field[new_y][new_x] is not None and field[new_y][new_x].color == self.color:
             # Проверка не пытается ли съесть своих
             return False
+        # Проверка есть ли фигуры на пути к точке
+        if abs(self.x - new_x) > 1:
+            for j in range(min(self.x, new_x) + 1, max(self.x, new_x)):
+                if field[self.y][j] is not None:
+                    return False
+        if abs(self.y - new_y) > 1:
+            for i in range(min(self.y, new_y) + 1, max(self.y, new_y)):
+                if field[i][self.x] is not None:
+                    return False
         return True
 
 
@@ -215,26 +412,6 @@ class Bishop(Figure):  # Офицер
             old_y += step_y
             if field[old_y][old_x] is not None:
                 return False
-        return True
-
-
-class Rook(Figure):  # Ладья
-    def can_move(self, new_x: int, new_y: int, field: list[list]):
-        if not (self.x == new_x or self.y == new_y):
-            # Проверка может ли физически переместиться в данную клетку
-            return False
-        if field[new_y][new_x] is not None and field[new_y][new_x].color == self.color:
-            # Проверка не пытается ли съесть своих
-            return False
-        # Проверка есть ли фигуры на пути к точке
-        if abs(self.x - new_x) > 1:
-            for j in range(min(self.x, new_x) + 1, max(self.x, new_x)):
-                if field[self.y][j] is not None:
-                    return False
-        if abs(self.y - new_y) > 1:
-            for i in range(min(self.y, new_y) + 1, max(self.y, new_y)):
-                if field[i][self.x] is not None:
-                    return False
         return True
 
 

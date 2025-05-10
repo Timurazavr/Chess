@@ -6,6 +6,7 @@ from data.users import User
 from data.games_chess import GameChess
 from forms.register import RegisterForm
 from forms.login import LoginForm
+from game_logic.chess_logic import Chess
 
 # for linux absolute path
 # for windows relative path
@@ -186,7 +187,7 @@ def get_session_data(session_id):
     position = eval(session.board)
     board = position[-1].split()[0]
     enemy = db_sess.query(User).filter(User.id == enemy_id).first().nickname
-    whose_turn = 'white' if position[-1].split()[1] == 'w' else 'black'
+    whose_turn = "white" if position[-1].split()[1] == "w" else "black"
     db_sess.close()
     return jsonify(colour=colour, board=board, whose_turn=whose_turn, enemy=enemy)
 
@@ -196,12 +197,19 @@ def get_board(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
     db_sess = db_session.create_session()
-    board = eval(db_sess.query(GameChess).filter(GameChess.id == session_id).first().board)[-1].split()[0]
-    mate = False
-    stalemate = False
-    shah = False
-    draw = False
-    to_who = 'white'  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
+    board = eval(
+        db_sess.query(GameChess).filter(GameChess.id == session_id).first().board
+    )[-1].split()[0]
+    chess = Chess.from_notation(
+        board
+    )  # пока что не написал конвертор, так что возвращает базовую доску
+    mate = chess.mate
+    stalemate = chess.stalemate
+    shah = chess.shah
+    draw = chess.draw
+    to_who = (
+        chess.to_who
+    )  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
     db_sess.close()
     return jsonify(board=board, mate=mate, stalemate=stalemate, shah=shah, draw=draw, to_who=to_who)
 
@@ -220,13 +228,19 @@ def movement(data):
 @app.route('/get_statement/<data>')
 def get_statement(data):
     if not request.script_root:
-        request.root_path = url_for('index', _external=True)
-    session_id = data.split('&')[0]
-    colour = data.split('&')[1]
-    mate = False
-    stalemate = False
-    shah = False
-    draw = False
+        request.root_path = url_for("index", _external=True)
+    session_id = data.split("&")[0]
+    colour = data.split("&")[1]
+    chess = Chess.from_notation(
+        board
+    )  # пока что не написал конвертор, так что возвращает базовую доску
+    mate = chess.mate
+    stalemate = chess.stalemate
+    shah = chess.shah
+    draw = chess.draw
+    to_who = (
+        chess.to_who
+    )  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
     return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw)
 
 

@@ -44,3 +44,4 @@ def is_user_exists(id: int) -> bool:
         )"""
     ).fetchone()
     return result[0]
+

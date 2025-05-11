@@ -9,7 +9,7 @@
         <button id="connect" style="display: inline">Подключиться по id</button>
     </div>
     <button id="create">Создать игру с другом</button>
-    <h3 id="enemy"></h3>
+    <h3 id="message">{{ message }}</h3>
 </div>
 <script>
     $.ajaxSetup({
@@ -31,7 +31,7 @@
                 if (data.permission) {
                     window.location = document.getElementById('script-root').innerText + 'way_to_play/' + input;
                 } else {
-                    document.getElementById('enemy_nickname').innerText = 'Неверный Id игры'
+                    document.getElementById('message').innerText = 'Неверный Id игры'
                 }
             }).fail(function (jqXHR, textStatus, err) {
                 console.log('error: get_permission');

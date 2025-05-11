@@ -6,12 +6,16 @@ function start() {
     });
     $.getJSON(`/get_session_data/${session_id}`, function (data) {
     }).done(function (data) {
+        if (!data.legit) {
+            window.location = $SCRIPT_ROOT + "error";
+        }
         colour = data.colour;
         g_board = data.board.split('/');
         whose_turn = data.whose_turn;
         document.getElementById('enemy_nickname').innerText = 'Противник: ' + data.enemy
     }).fail(function (jqXHR, textStatus, err) {
         console.log('error: get_session_data');
+        window.location = $SCRIPT_ROOT + "error";
     });
     let col;
     let row;
@@ -46,9 +50,13 @@ function fetching_and_waiting() { // checks everytime if there was new move or
     let board_db;
     $.getJSON(`/get_board/${session_id}`, function (data) {
     }).done(function (data) {
+        if (!data.legit) {
+            window.location = $SCRIPT_ROOT + "error";
+        }
         board_db = data.board.split('/');
     }).fail(function (jqXHR, textStatus, err) {
         console.log('error: get_board');
+        window.location = $SCRIPT_ROOT + "error";
     });
     if (board_db.toString() !== g_board.toString()) {
         console.log(g_board);
@@ -61,6 +69,9 @@ function fetching_and_waiting() { // checks everytime if there was new move or
         let to_who;
         $.getJSON(`/get_statement/${session_id}&${colour}`, function (data) {
         }).done(function (data) {
+            if (!data.legit) {
+                window.location = $SCRIPT_ROOT + "error";
+            }
             mate = data.mate;
             shah = data.shah;
             stalemate = data.stalemate;
@@ -68,6 +79,7 @@ function fetching_and_waiting() { // checks everytime if there was new move or
             to_who = data.to_who;
         }).fail(function (jqXHR, textStatus, err) {
             console.log('error: get_statement');
+            window.location = $SCRIPT_ROOT + "error";
         });
         if (whose_turn === 'white') {
             whose_turn = 'black';
@@ -128,6 +140,7 @@ function pressed_fields(i) { // if you pressed 2 valid fields and move is valid 
                 legit = data.legit;
             }).fail(function (jqXHR, textStatus, err) {
                 console.log('error: movement');
+                window.location = $SCRIPT_ROOT + "error";
             });
             if (legit) {
                 pushed = [];

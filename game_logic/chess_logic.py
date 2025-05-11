@@ -1,8 +1,6 @@
 from copy import deepcopy
 
 
-# Написать рокировку, взятие на проходе, перевоплощение пешки на конце доски
-# + проверка на мат, шах, пат, ничью
 class Chess:
     def __init__(
         self, fen_str="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -10,7 +8,6 @@ class Chess:
         self.field = [
             [None for _ in range(8)] for _ in range(8)
         ]  # Создаём пустую доску
-
         # Словарь для преобразования символов FEN в классы фигур
         piece_map = {
             "r": Rook,
@@ -148,7 +145,15 @@ class Chess:
         """Проверка может ли фигура сходить"""
         if not self.is_current_player_figure(x, y):
             return False
-        if not self.field[y][x].can_move(new_x, new_y, self.field):
+        if not self.field[y][x].can_move(new_x, new_y, self.field) or (
+            self.en_passant
+            and isinstance(self.field[y][x], Pawn)
+            and not self.field[y][x].can_move(new_x, new_y, self.field, self.en_passant)
+            or (
+                isinstance(self.field[y][x], King)
+                and not self.can_castle(x, y, new_x, new_y)
+            )
+        ):
             # Может ли фигура переместиться в данную клетку
             return False
         # Может ли сходить фигура так, чтобы короля не срубили в следующем ходу
@@ -174,11 +179,64 @@ class Chess:
 
         return True
 
+    def can_castle(self, x, y, new_x, new_y):
+        if not (y - new_y == 0 and abs(x - new_x) == 2):
+            return False
+        king = self.field[y][x]
+        if king.moved:
+            return False
+
+        direction = new_x - x
+        rook_x = 7 if direction > 0 else 0
+        rook = self.field[y][rook_x]
+
+        if not isinstance(rook, Rook) or rook.moved:
+            return False
+
+        step = 1 if direction > 0 else -1
+        for dx in range(1, abs(direction)):
+            if self.field[y][x + dx * step] is not None:
+                return False
+
+        if self.is_shah(king.color):
+            return False
+
+        temp_chess = deepcopy(self)
+        temp_king = temp_chess.field[y][x]
+        temp_chess.field[y][x] = None
+        temp_chess.field[y][x + step] = temp_king
+        temp_king.x += step
+        if temp_chess.is_shah(king.color):
+            return False
+
+        temp_chess.field[y][x + step] = None
+        temp_chess.field[y][new_x] = temp_king
+        temp_king.x = new_x
+        return not temp_chess.is_shah(king.color)
+
     def move(self, x, y, new_x, new_y):
         """Перемещение фигуры"""
         if not self.can_move(x, y, new_x, new_y):
             return False
 
+        if isinstance(self.field[y][x], King):
+            self.castling_rights["K" if self.field[y][x].color == "white" else "k"] = (
+                False
+            )
+            self.castling_rights["Q" if self.field[y][x].color == "white" else "q"] = (
+                False
+            )
+            self.field[y][x].moved = True
+        if isinstance(self.field[y][x], Rook):
+            if x == 0:
+                self.castling_rights[
+                    "Q" if self.field[y][x].color == "white" else "q"
+                ] = False
+            else:
+                self.castling_rights[
+                    "K" if self.field[y][x].color == "white" else "k"
+                ] = False
+            self.field[y][x].moved = True
         if self.field[new_y][new_x] or isinstance(self.field[y][x], Pawn):
             self.halfmove_clock = 0
         else:
@@ -187,16 +245,45 @@ class Chess:
         if self.who_walking == "black":
             self.fullmove_number += 1
 
-        if isinstance(self.field[y][x], Pawn) and abs(y - new_y) == 2:
+        self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
+        self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y
+
+        if isinstance(self.field[new_y][new_x], King) and abs(new_x - x) == 2:
+            direction = new_x - x
+            rook_x = 7 if direction > 0 else 0
+            rook_new_x = new_x - 1 if direction > 0 else new_x + 1
+            rook = self.field[y][rook_x]
+            self.field[y][rook_x] = None
+            self.field[y][rook_new_x] = rook
+            rook.x = rook_new_x
+            rook.moved = True
+            self.castling_rights["K" if rook.color == "white" else "k"] = False
+            self.castling_rights["Q" if rook.color == "white" else "q"] = False
+
+        if (
+            isinstance(self.field[new_y][new_x], Pawn)
+            and (new_x, new_y) == self.en_passant
+        ):
+            if self.field[new_y][new_x].color == "white":
+                captured_y = new_y + 1
+            else:
+                captured_y = new_y - 1
+            self.field[captured_y][new_x] = None
+
+        if isinstance(self.field[new_y][new_x], Pawn) and abs(y - new_y) == 2:
             self.en_passant = x, (y + new_y) // 2
         else:
             self.en_passant = None
 
-        self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
-        self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y
-
+        if isinstance(self.field[new_y][new_x], Pawn):
+            if (self.field[new_y][new_x].color == "white" and new_y == 0) or (
+                self.field[new_y][new_x].color == "black" and new_y == 7
+            ):
+                # Заменяем пешку на ферзя
+                self.field[new_y][new_x] = Queen(
+                    new_x, new_y, self.field[new_y][new_x].color
+                )
         self.who_walking = "black" if self.who_walking == "white" else "white"
-        self.is_mate()
 
     def is_shah(self, color):
         """Обьявлен ли королю шах"""
@@ -212,7 +299,6 @@ class Chess:
     def is_mate(self, color):
         """Проверка, находится ли игрок под матом."""
         if not self.is_shah(color):
-            self.is_finished = False
             return False
 
         for y in range(8):
@@ -226,12 +312,10 @@ class Chess:
                             original_color = temp_chess.who_walking
                             success = temp_chess.move(x, y, new_x, new_y)
                             if success and not temp_chess.is_shah(original_color):
-                                self.is_finished = False
                                 return False
-        self.is_finished = True
         return True
 
-    def is_stalemate(self):  # не оптимально, переписать
+    def is_stalemate(self):
         """Проверяет, находится ли игрок в патовой ситуации."""
 
         # Проверяем, есть ли хотя бы один допустимый ход у игрока
@@ -332,43 +416,6 @@ class Pawn(Figure):  # Пешка
                 return False
         return True
 
-    def can_move(self, new_x: int, new_y: int, field: list[list]):
-        if self.color == "white":
-            if new_x == self.x:
-                if not (self.y - new_y == 1 or (self.y - new_y == 2 and self.y == 6)):
-                    return False
-                for i in range(new_y, self.y):
-                    if field[i][new_x] is not None:
-                        return False
-            elif abs(new_x - self.x) == 1:
-                if not self.y - new_y == 1:
-                    return False
-                if (
-                    field[new_y][new_x] is None
-                    or field[new_y][new_x].color == self.color
-                ):
-                    return False
-            else:
-                return False
-        elif self.color == "black":
-            if new_x == self.x:
-                if not (self.y - new_y == -1 or (self.y - new_y == -2 and self.y == 1)):
-                    return False
-                for i in range(new_y, self.y, -1):
-                    if field[i][new_x] is not None:
-                        return False
-            elif abs(new_x - self.x) == 1:
-                if not self.y - new_y == -1:
-                    return False
-                if (
-                    field[new_y][new_x] is None
-                    or field[new_y][new_x].color == self.color
-                ):
-                    return False
-            else:
-                return False
-        return True
-
 
 class Queen(Figure):  # Ферзь
     def can_move(self, new_x: int, new_y: int, field: list[list]):
@@ -407,6 +454,10 @@ class Queen(Figure):  # Ферзь
 
 
 class King(Figure):  # Король
+    def __init__(self, x: int, y: int, color: str):
+        super().__init__(x, y, color)
+        self.moved = False
+
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (abs(self.x - new_x) <= 1 and abs(self.y - new_y) <= 1):
             # Проверка может ли физически переместиться в данную клетку
@@ -418,6 +469,10 @@ class King(Figure):  # Король
 
 
 class Rook(Figure):  # Ладья
+    def __init__(self, x: int, y: int, color: str):
+        super().__init__(x, y, color)
+        self.moved = False
+
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (self.x == new_x or self.y == new_y):
             # Проверка может ли физически переместиться в данную клетку
@@ -470,3 +525,5 @@ class Knight(Figure):  # Конь
             # Проверка не пытается ли съесть своих
             return False
         return True
+
+

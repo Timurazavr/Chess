@@ -1,10 +1,47 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div style="display: flex; flex-direction: column;">
     <h1>Начнем игру?</h1>
-    <form action="" method="post">
-        {{ form.hidden_tag() }}
-        <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
-{#        <div>{{ message }}</div>#}
-    </form>
+    <button id="random">Быстрая игра</button>
+    <div>
+        <label for="inp">Id игры</label><input type="number" id="inp" style="display: inline">
+        <button id="connect" style="display: inline">Подключиться по id</button>
+    </div>
+    <button id="create">Создать игру с другом</button>
+    <h3 id="message">{{ message }}</h3>
+</div>
+<script>
+    $.ajaxSetup({
+        async: false
+    });
+
+    function onclick_buttons(input) {
+        $.getJSON(`/get_my_sessions`, function (data) {
+        }).done(function (data) {
+            if (data.have_sessions) {
+                window.location = document.getElementById('script-root').innerText + 'waiting_for_players';
+            }
+        }).fail(function (jqXHR, textStatus, err) {
+            console.log('error: get_my_sessions');
+        });
+        if (input !== input.toString()) {
+            $.getJSON(`/get_permission/${input}`, function (data) {
+            }).done(function (data) {
+                if (data.permission) {
+                    window.location = document.getElementById('script-root').innerText + 'way_to_play/' + input;
+                } else {
+                    document.getElementById('message').innerText = 'Неверный Id игры'
+                }
+            }).fail(function (jqXHR, textStatus, err) {
+                console.log('error: get_permission');
+            });
+        } else {
+            window.location = document.getElementById('script-root').innerText + 'way_to_play/' + input;
+        }
+    }
+    document.getElementById('random').onclick = () => onclick_buttons('random')
+    document.getElementById('connect').onclick = () => onclick_buttons(document.getElementById('inp').value)
+    document.getElementById('create').onclick = () => onclick_buttons('create')
+</script>
 {% endblock %}

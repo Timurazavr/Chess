@@ -33,12 +33,15 @@ def load_user(user_id):
     return usr
 
 
-@app.route("/", methods=["GET", "POST"])
-def index():
+@app.route("/", defaults={"message": None})
+@app.route("/<string:message>", methods=["GET", "POST"])
+def index(message):
     if current_user.is_authenticated:
         if not request.script_root:
             request.root_path = url_for("index", _external=True)
-        return render_template("start_game.html")
+        if message == "error":
+            return render_template("start_game.html", message="Some error has floated")
+        return render_template("start_game.html", message="")
     else:
         return redirect("/login")
 
@@ -54,14 +57,15 @@ def waiting():
             sess = (
                 db_sess.query(GameChess)
                 .filter(
-                    (GameChess.white_id == current_user.id)
-                    | (GameChess.black_id == current_user.id)
+                    (
+                        (GameChess.white_id == current_user.id)
+                        | (GameChess.black_id == current_user.id)
+                    ),
+                    GameChess.is_finished == 0,
                 )
                 .first()
             )
-            print(sess)
             if not sess:
-                print("bad", current_user.id)
                 raise Exception
             if sess.black_id == -2:
                 return render_template("waiting.html")
@@ -70,9 +74,12 @@ def waiting():
             else:
                 return redirect(f"/session/{sess.id}")
         except Exception as e:
-            print(len(db_sess.query(GameChess).filter(GameChess.black_id == -1).all()))
             if (
-                len(db_sess.query(GameChess).filter(GameChess.black_id == -1).all())
+                len(
+                    db_sess.query(GameChess)
+                    .filter(GameChess.black_id == -1, GameChess.is_finished == 0)
+                    .all()
+                )
                 != 0
             ):
                 game = db_sess.query(GameChess).first()
@@ -93,13 +100,21 @@ def waiting():
 def check():
     db_sess = db_session.create_session()
     session = (
-        db_sess.query(GameChess).filter(GameChess.white_id == current_user.id).first()
+        db_sess.query(GameChess)
+        .filter(GameChess.white_id == current_user.id, GameChess.is_finished == 0)
+        .first()
     )
-    if session.black_id in [-1, -2]:
-        return jsonify(start_game=False, black_id=session.black_id, session=session.id)
+    if not session:
+        return jsonify(legit=False)
+    if session.black_id in [-2, -1]:
+        return jsonify(
+            legit=True, start_game=False, black_id=session.black_id, session=session.id
+        )
     enemy = db_sess.query(User).filter(User.id == session.black_id).first()
     db_sess.close()
-    return jsonify(start_game=True, session=session.id, enemy=enemy.nickname)
+    return jsonify(
+        legit=True, start_game=True, session=session.id, enemy=enemy.nickname
+    )
 
 
 @app.route("/session/<session_id>", methods=["GET"])
@@ -115,7 +130,6 @@ def session(session_id):
 @app.route("/way_to_play/<string:way>", methods=["GET"])
 def way_to_play(way: str):
     if current_user.is_authenticated:
-        print("once")
         if not request.script_root:
             request.root_path = url_for("index", _external=True)
         if way == "random":
@@ -123,7 +137,11 @@ def way_to_play(way: str):
         elif way.isnumeric():
             db_sess = db_session.create_session()
             try:
-                sess = db_sess.query(GameChess).filter(GameChess.id == int(way)).first()
+                sess = (
+                    db_sess.query(GameChess)
+                    .filter(GameChess.id == int(way), GameChess.is_finished == 0)
+                    .first()
+                )
                 if not sess:
                     raise Exception
                 if sess.black_id == -2:
@@ -212,7 +230,13 @@ def get_session_data(session_id):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
-    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
+    session = (
+        db_sess.query(GameChess)
+        .filter(GameChess.id == session_id, GameChess.is_finished == 0)
+        .first()
+    )
+    if not session:
+        return jsonify(legit=False)
     colour = "white" if session.white_id == current_user.id else "black"
     enemy_id = session.black_id if colour == "white" else session.white_id
     position = eval(session.board)
@@ -220,7 +244,9 @@ def get_session_data(session_id):
     enemy = db_sess.query(User).filter(User.id == enemy_id).first().nickname
     whose_turn = "white" if position[-1].split()[1] == "w" else "black"
     db_sess.close()
-    return jsonify(colour=colour, board=board, whose_turn=whose_turn, enemy=enemy)
+    return jsonify(
+        legit=True, colour=colour, board=board, whose_turn=whose_turn, enemy=enemy
+    )
 
 
 @app.route("/get_board/<session_id>")
@@ -228,12 +254,15 @@ def get_board(session_id):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
-    board = eval(
-        db_sess.query(GameChess).filter(GameChess.id == session_id).first().board
-    )[-1].split()[0]
-    chess = Chess.from_notation(
-        board
-    )  # пока что не написал конвертор, так что возвращает базовую доску
+    session = (
+        db_sess.query(GameChess)
+        .filter(GameChess.id == session_id, GameChess.is_finished == 0)
+        .first()
+    )
+    if not session:
+        return jsonify(legit=False)
+    board = eval(session.board)[-1]
+    chess = Chess(board)
     mate = chess.mate
     stalemate = chess.stalemate
     shah = chess.shah
@@ -243,7 +272,13 @@ def get_board(session_id):
     )  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
     db_sess.close()
     return jsonify(
-        board=board, mate=mate, stalemate=stalemate, shah=shah, draw=draw, to_who=to_who
+        legit=True,
+        board=board.split()[0],
+        mate=mate,
+        stalemate=stalemate,
+        shah=shah,
+        draw=draw,
+        to_who=to_who,
     )
 
 
@@ -254,7 +289,24 @@ def movement(data):
     session_id = data.split("&")[0]
     cord_from = [int(i) - 1 for i in data.split("&")[1]]
     cord_to = [int(i) - 1 for i in data.split("&")[2]]
-    SOME_INSTANCE = True  # todo проверка валидности хода, если валиден то сделать ход в д, ДОСКА МЕНЯЕТСЯ В КЛАССЕ ЛОГИКИ
+    db_sess = db_session.create_session()
+    session = (
+        db_sess.query(GameChess)
+        .filter(GameChess.id == session_id, GameChess.is_finished == 0)
+        .first()
+    )
+    if not session:
+        return jsonify(legit=False)
+    board = eval(session.board)[-1]
+    chess = Chess(board)
+    SOME_INSTANCE = chess.move(
+        *cord_from, *cord_to
+    )  # todo проверка валидности хода, если валиден то сделать ход в д, ДОСКА МЕНЯЕТСЯ В КЛАССЕ ЛОГИКИ
+    if SOME_INSTANCE:  # Если ход валиден
+        fen = (
+            chess.get_fen()
+        )  # Возвращает fen нотацию, сделай, чтобы она записывалась в дб
+        # Или можем вынести дб в общую папку и тогда запись будет происходить внутри самой логики
     return jsonify(legit=SOME_INSTANCE)
 
 
@@ -264,9 +316,15 @@ def get_statement(data):
         request.root_path = url_for("index", _external=True)
     session_id = data.split("&")[0]
     colour = data.split("&")[1]
-    chess = Chess.from_notation(
-        board
-    )  # пока что не написал конвертор, так что возвращает базовую доску
+    db_sess = db_session.create_session()
+    session = (
+        db_sess.query(GameChess)
+        .filter(GameChess.id == session_id, GameChess.is_finished == 0)
+        .first()
+    )
+    if not session:
+        return jsonify(legit=False)
+    chess = Chess(eval(session.board)[-1])
     mate = chess.mate
     stalemate = chess.stalemate
     shah = chess.shah
@@ -282,11 +340,17 @@ def get_permission(data):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
-    if db_sess.query(GameChess).filter(GameChess.id == data).first():
+    if (
+        db_sess.query(GameChess)
+        .filter(GameChess.id == data, GameChess.is_finished == 0)
+        .first()
+    ):
         db_sess.close()
+        print("permission:", True)
         return jsonify(permission=True)
     db_sess.close()
-    return jsonify(legit=False)
+    print("permission:", False)
+    return jsonify(permission=False)
 
 
 @app.route("/get_my_sessions")
@@ -297,8 +361,11 @@ def get_my_sessions():
     if (
         db_sess.query(GameChess)
         .filter(
-            (GameChess.white_id == current_user.id)
-            | (GameChess.black_id == current_user.id)
+            (
+                (GameChess.white_id == current_user.id)
+                | (GameChess.black_id == current_user.id)
+            ),
+            GameChess.is_finished == 0,
         )
         .first()
     ):
@@ -306,6 +373,7 @@ def get_my_sessions():
     else:
         have_sessions = False
     db_sess.close()
+    print("have_sessions:", have_sessions)
     return jsonify(have_sessions=have_sessions)
 
 
@@ -315,9 +383,7 @@ def main():
 
 
 def rotate_board(
-    board: [
-        [],
-    ],
+    board: list[list],
 ):
     return [board[i].reverse() for i in range(7, -1, -1)]
 

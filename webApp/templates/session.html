@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <p hidden="hidden" id="script-root">{{ request.script_root|tojson|safe }}</p>
     <p hidden="hidden" id="session">{{ session_id }}</p>
-    <h1 id="test"></h1>
+    <h1 id="enemy_nickname"></h1>
     <div class="board" id="board">
         <button class="image-button" id="11"></button>
         <button class="image-button" id="12"></button>

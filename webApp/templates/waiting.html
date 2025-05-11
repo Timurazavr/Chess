@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <p hidden="hidden" id="script-root">{{ request.script_root|tojson }}</p>
     <form action="" method="post">
+        <h2 hidden="hidden" id="special_id"></h2>
         <h3 id="waiting">Ищем</h3>
+
     </form>
 {% endblock %}
 {% block script %}

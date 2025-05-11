@@ -284,6 +284,7 @@ class Chess:
                     new_x, new_y, self.field[new_y][new_x].color
                 )
         self.who_walking = "black" if self.who_walking == "white" else "white"
+        return True
 
     def is_shah(self, color):
         """Обьявлен ли королю шах"""
@@ -525,5 +526,3 @@ class Knight(Figure):  # Конь
             # Проверка не пытается ли съесть своих
             return False
         return True
-
-

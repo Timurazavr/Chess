@@ -4,8 +4,6 @@ from aiogram.types import CallbackQuery, Message
 from lexicon.lexicon import LEXICON
 from keyboards.pagination_kb import create_keyboard, create_keyboard_chess
 from databases.database import is_user_exists, get_user, add_user, chang_user
-from services.services import session_dict
-from game_logic.chess_logic import Chess
 
 router = Router()
 

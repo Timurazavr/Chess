@@ -41,7 +41,16 @@ class Chess:
         # Устанавливаем очередь хода
         self.who_walking = "white" if fen_parts[1] == "w" else "black"
 
-        self.castling_rights = {"K": True, "Q": True, "k": True, "q": True}
+        self.castling_rights = {
+            "K": "K" in fen_parts[2],
+            "Q": "Q" in fen_parts[2],
+            "k": "k" in fen_parts[2],
+            "q": "q" in fen_parts[2],
+        }
+        if fen_parts[3] == "-":
+            self.en_passant = None
+        else:
+            self.en_passant = ord(fen_parts[3][0]) - 97, 8 - int(fen_parts[3][1])
         self.halfmove_clock = int(fen_parts[4])
         self.fullmove_number = int(fen_parts[5])
 
@@ -87,9 +96,22 @@ class Chess:
 
         turn = "w" if self.who_walking == "white" else "b"
 
-        # 3-4. Остальные компоненты (заглушки, так как в коде нет этой логики)
-        castling = "-"
-        en_passant = "-"
+        castling = []
+        if self.castling_rights["K"]:
+            castling.append("K")
+        if self.castling_rights["Q"]:
+            castling.append("Q")
+        if self.castling_rights["k"]:
+            castling.append("k")
+        if self.castling_rights["q"]:
+            castling.append("q")
+        castling_str = "".join(castling) if castling else "-"
+
+        en_passant = (
+            chr(97 + self.en_passant[0]) + str(8 - self.en_passant[1])
+            if self.en_passant
+            else "-"
+        )
 
         halfmove_clock = str(self.halfmove_clock)
         fullmove_number = str(self.fullmove_number)
@@ -98,7 +120,7 @@ class Chess:
             [
                 "/".join(fen_rows),
                 turn,
-                castling,
+                castling_str,
                 en_passant,
                 halfmove_clock,
                 fullmove_number,
@@ -129,8 +151,6 @@ class Chess:
         if not self.field[y][x].can_move(new_x, new_y, self.field):
             # Может ли фигура переместиться в данную клетку
             return False
-        if isinstance(figure, King) and abs(new_x - x) == 2:
-            return self.can_castle(x, y, new_x, new_y)
         # Может ли сходить фигура так, чтобы короля не срубили в следующем ходу
 
         # Сохраняем состояние
@@ -166,6 +186,11 @@ class Chess:
 
         if self.who_walking == "black":
             self.fullmove_number += 1
+
+        if isinstance(self.field[y][x], Pawn) and abs(y - new_y) == 2:
+            self.en_passant = x, (y + new_y) // 2
+        else:
+            self.en_passant = None
 
         self.field[y][x], self.field[new_y][new_x] = None, self.field[y][x]
         self.field[new_y][new_x].x, self.field[new_y][new_x].y = new_x, new_y
@@ -242,39 +267,6 @@ class Chess:
                     return True
         return False
 
-    def can_castle(self, x, y, new_x, new_y):
-        king = self.field[y][x]
-        if king.moved:
-            return False
-
-        direction = new_x - x
-        rook_x = 7 if direction > 0 else 0
-        rook = self.field[y][rook_x]
-
-        if not isinstance(rook, Rook) or rook.moved:
-            return False
-
-        step = 1 if direction > 0 else -1
-        for dx in range(1, abs(direction)):
-            if self.field[y][x + dx * step] is not None:
-                return False
-
-        if self.is_shah(king.color):
-            return False
-
-        temp_chess = deepcopy(self)
-        temp_king = temp_chess.field[y][x]
-        temp_chess.field[y][x] = None
-        temp_chess.field[y][x + step] = temp_king
-        temp_king.x += step
-        if temp_chess.is_shah(king.color):
-            return False
-
-        temp_chess.field[y][x + step] = None
-        temp_chess.field[y][new_x] = temp_king
-        temp_king.x = new_x
-        return not temp_chess.is_shah(king.color)
-
 
 class Figure:
     def __init__(self, x: int, y: int, color: str):
@@ -282,6 +274,64 @@ class Figure:
 
 
 class Pawn(Figure):  # Пешка
+    def can_move(
+        self, new_x: int, new_y: int, field: list[list], en_passant: tuple = None
+    ):
+        if self.color == "white":
+            # Обычный ход или взятие
+            if new_x == self.x:
+                if not (self.y - new_y == 1 or (self.y - new_y == 2 and self.y == 6)):
+                    return False
+                # Проверка на препятствия
+                for i in range(new_y, self.y):
+                    if field[i][new_x] is not None:
+                        return False
+            elif abs(new_x - self.x) == 1:
+                # Обычное взятие или взятие на проходе
+                if self.y - new_y != 1:
+                    return False
+                # Проверка на фигуру противника или en_passant
+                target_cell = field[new_y][new_x]
+                if target_cell is None:
+                    # Проверка на en_passant
+                    if en_passant == (new_x, new_y):
+                        # Пешка противника должна быть на (new_x, new_y + 1)
+                        adjacent_pawn = field[new_y + 1][new_x]
+                        return (
+                            isinstance(adjacent_pawn, Pawn)
+                            and adjacent_pawn.color != self.color
+                        )
+                    return False
+                else:
+                    return target_cell.color != self.color
+            else:
+                return False
+        elif self.color == "black":
+            if new_x == self.x:
+                if not (new_y - self.y == 1 or (new_y - self.y == 2 and self.y == 1)):
+                    return False
+                for i in range(self.y + 1, new_y + 1):
+                    if field[i][new_x] is not None:
+                        return False
+            elif abs(new_x - self.x) == 1:
+                if new_y - self.y != 1:
+                    return False
+                target_cell = field[new_y][new_x]
+                if target_cell is None:
+                    # Проверка на en_passant
+                    if en_passant == (new_x, new_y):
+                        adjacent_pawn = field[new_y - 1][new_x]
+                        return (
+                            isinstance(adjacent_pawn, Pawn)
+                            and adjacent_pawn.color != self.color
+                        )
+                    return False
+                else:
+                    return target_cell.color != self.color
+            else:
+                return False
+        return True
+
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if self.color == "white":
             if new_x == self.x:
@@ -356,25 +406,18 @@ class Queen(Figure):  # Ферзь
         return True
 
 
-class King(Figure):
-    def __init__(self, x: int, y: int, color: str):
-        super().__init__(x, y, color)
-        self.moved = False
-
+class King(Figure):  # Король
     def can_move(self, new_x: int, new_y: int, field: list[list]):
+        if not (abs(self.x - new_x) <= 1 and abs(self.y - new_y) <= 1):
+            # Проверка может ли физически переместиться в данную клетку
+            return False
         if field[new_y][new_x] is not None and field[new_y][new_x].color == self.color:
             # Проверка не пытается ли съесть своих
             return False
-        dx = abs(new_x - self.x)
-        dy = abs(new_y - self.y)
-        return (dx <= 1 and dy <= 1) or (dy == 0 and dx == 2)
+        return True
 
 
-class Rook(Figure):
-    def __init__(self, x: int, y: int, color: str):
-        super().__init__(x, y, color)
-        self.moved = False
-
+class Rook(Figure):  # Ладья
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (self.x == new_x or self.y == new_y):
             # Проверка может ли физически переместиться в данную клетку

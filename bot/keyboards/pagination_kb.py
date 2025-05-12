@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from lexicon.lexicon import LEXICON
+from bot.lexicon.lexicon import LEXICON
 
 
 def create_keyboard(*buttons: str) -> InlineKeyboardMarkup:
@@ -19,7 +19,13 @@ def create_keyboard_chess(field) -> InlineKeyboardMarkup:
     keyb.row(
         *[
             InlineKeyboardButton(
-                text=" " if field[i // 8][i % 8] is None else str(field[i // 8][i % 8]),
+                text=(
+                    " "
+                    if field[i // 8][i % 8] is None
+                    else LEXICON[field[i // 8][i % 8].color][
+                        field[i // 8][i % 8].__class__.__name__
+                    ]
+                ),
                 callback_data="field" + str(i // 8) + str(i % 8),
             )
             for i in range(64)

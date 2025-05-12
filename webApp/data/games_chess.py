@@ -10,12 +10,5 @@ class GameChess(SqlAlchemyBase):
                            primary_key=True, autoincrement=True)
     white_id = sqlalchemy.Column(sqlalchemy.Integer)
     black_id = sqlalchemy.Column(sqlalchemy.Integer, default=-1)
-    whose_turn = sqlalchemy.Column(sqlalchemy.String, default='White')
-    board = sqlalchemy.Column(sqlalchemy.String, default=str([['WR', 'WN', 'WB', 'WQ', 'WK', 'WB', 'WN', 'WR'],
-                                                              ['WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP', 'WP'],
-                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
-                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
-                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
-                                                              ['--', '--', '--', '--', '--', '--', '--', '--'],
-                                                              ['BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP', 'BP'],
-                                                              ['BR', 'BN', 'BB', 'BQ', 'BK', 'BB', 'BN', 'BR']]))
+    board = sqlalchemy.Column(sqlalchemy.String, default=str(['rnbqkbnr/pppppppp/FFFFFFFF/FFFFFFFF/FFFFFFFF/FFFFFFFF/PPPPPPPP/RNBQKBNR w KQkq - 1']))
+    is_finished = sqlalchemy.Column(sqlalchemy.Boolean, default=False)

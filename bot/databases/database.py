@@ -1,13 +1,24 @@
 import sqlite3
 import json
 
-db: sqlite3.Connection = sqlite3.connect("databases/db.sqlite")
+db: sqlite3.Connection = sqlite3.connect("bot/databases/db.sqlite")
 
 
 def get_user(id: int):
     cur = db.cursor()
     result = cur.execute(
         f"""SELECT last_message_id
+            FROM Users
+            WHERE id == {id}
+        """
+    ).fetchone()
+    return result[0]
+
+
+def get_sess(id: int):
+    cur = db.cursor()
+    result = cur.execute(
+        f"""SELECT session
             FROM Users
             WHERE id == {id}
         """
@@ -34,6 +45,16 @@ def chang_user(id: int, last_message_id: int) -> None:
     db.commit()
 
 
+def chang_sess(id: int, sess) -> None:
+    cur = db.cursor()
+    cur.execute(
+        f"""UPDATE Users
+                SET session = {sess}
+            WHERE id == {id}""",
+    )
+    db.commit()
+
+
 def is_user_exists(id: int) -> bool:
     cur = db.cursor()
     result = cur.execute(
@@ -44,4 +65,3 @@ def is_user_exists(id: int) -> bool:
         )"""
     ).fetchone()
     return result[0]
-

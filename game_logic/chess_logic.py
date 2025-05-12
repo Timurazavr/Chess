@@ -24,7 +24,6 @@ class Chess:
 
         # Заполняем поле
         for y, row in enumerate(rows):
-            y_converted = 7 - y  # FEN начинается с 8-го ряда (y=7 в нашей системе)
             x = 0
             for char in row:
                 if char.isdigit():
@@ -32,7 +31,7 @@ class Chess:
                 else:
                     color = "white" if char.isupper() else "black"
                     piece_class = piece_map[char.lower()]
-                    self.field[y_converted][x] = piece_class(x, y_converted, color)
+                    self.field[y][x] = piece_class(x, y, color)
                     x += 1
 
         # Устанавливаем очередь хода
@@ -51,16 +50,7 @@ class Chess:
         self.halfmove_clock = int(fen_parts[4])
         self.fullmove_number = int(fen_parts[5])
 
-        self.to_who = None
-        self.shah = self.is_shah("white") or self.is_shah("black")
-        if self.shah:
-            self.mate = self.is_mate(self.to_who)
-            self.stalemate = False
-            self.draw = False
-        else:
-            self.mate = False
-            self.stalemate = self.is_stalemate()
-            self.draw = self.is_draw()
+        self.get_stat()
 
     def get_fen(self):
         """Конвертирует текущую позицию в FEN-строку."""
@@ -73,7 +63,7 @@ class Chess:
             King: "k",
         }
         fen_rows = []
-        for row in reversed(self.field):
+        for row in self.field:
             fen_row = []
             empty = 0
 
@@ -124,6 +114,18 @@ class Chess:
             ]
         )
 
+    def get_stat(self):
+        self.to_who = None
+        self.shah = self.is_shah("white") or self.is_shah("black")
+        if self.shah:
+            self.mate = self.is_mate(self.to_who)
+            self.stalemate = False
+            self.draw = False
+        else:
+            self.mate = False
+            self.stalemate = self.is_stalemate()
+            self.draw = self.is_draw()
+
     def find_king_position(self, color):
         for y in range(8):
             for x in range(8):
@@ -145,36 +147,32 @@ class Chess:
         """Проверка может ли фигура сходить"""
         if not self.is_current_player_figure(x, y):
             return False
-        if not self.field[y][x].can_move(new_x, new_y, self.field) or (
-            self.en_passant
-            and isinstance(self.field[y][x], Pawn)
-            and not self.field[y][x].can_move(new_x, new_y, self.field, self.en_passant)
+        if not (
+            self.field[y][x].can_move(new_x, new_y, self.field)
+            or (
+                self.en_passant
+                and isinstance(self.field[y][x], Pawn)
+                and self.field[y][x].can_move(new_x, new_y, self.field, self.en_passant)
+            )
             or (
                 isinstance(self.field[y][x], King)
-                and not self.can_castle(x, y, new_x, new_y)
+                and self.can_castle(x, y, new_x, new_y)
             )
         ):
             # Может ли фигура переместиться в данную клетку
             return False
         # Может ли сходить фигура так, чтобы короля не срубили в следующем ходу
 
-        # Сохраняем состояние
-        figure = self.field[y][x]
-        original_block = self.field[new_y][new_x]
-
-        # Делаем временный ход
-        self.field[y][x] = None
-        self.field[new_y][new_x] = figure
-        figure.x, figure.y = new_y, new_y
-
-        is_shah = self.is_shah(self.who_walking)
-
-        # Восстанавливаем состояние
-        self.field[y][x] = figure
-        self.field[new_y][new_x] = original_block
-        figure.x, figure.y = x, y
-
-        if is_shah:
+        temp_chess = deepcopy(self)
+        temp_chess.field[y][x], temp_chess.field[new_y][new_x] = (
+            None,
+            temp_chess.field[y][x],
+        )
+        temp_chess.field[new_y][new_x].x, temp_chess.field[new_y][new_x].y = (
+            new_x,
+            new_y,
+        )
+        if temp_chess.is_shah(temp_chess.who_walking):
             return False
 
         return True
@@ -329,6 +327,7 @@ class Chess:
                     for new_x in range(8):
                         if self.can_move(x, y, new_x, new_y):
                             return False  # Найден допустимый ход -> пат отсутствует
+        self.to_who = self.who_walking
         return True  # Нет допустимых ходов -> пат
 
     def is_draw(self):

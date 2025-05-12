@@ -1,7 +1,7 @@
 import sqlite3
 import json
 
-db: sqlite3.Connection = sqlite3.connect("databases/db.sqlite")
+db: sqlite3.Connection = sqlite3.connect("bot/databases/db.sqlite")
 
 
 def get_user(id: int):

@@ -187,7 +187,7 @@ def get_session_data(session_id):
     colour = 'white' if session.white_id == current_user.id else 'black'
     enemy_id = session.black_id if colour == 'white' else session.white_id
     position = eval(session.board)
-    board = position[-1].split()[0]
+    board = to_site_board(position[-1].split()[0])
     enemy = db_sess.query(User).filter(User.id == enemy_id).first().nickname
     whose_turn = "white" if position[-1].split()[1] == "w" else "black"
     db_sess.close()
@@ -202,15 +202,9 @@ def get_board(session_id):
     session = db_sess.query(GameChess).filter(GameChess.id == session_id, GameChess.is_finished == 0).first()
     if not session:
         return jsonify(legit=False)
-    board = eval(session.board)[-1]
-    chess = Chess(board)  # пока что не написал конвертор, так что возвращает базовую доску
-    mate = chess.mate
-    stalemate = chess.stalemate
-    shah = chess.shah
-    draw = chess.draw
-    to_who = chess.to_who  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
+    board = to_site_board(eval(session.board)[-1].split()[0])
     db_sess.close()
-    return jsonify(legit=True, board=board.split()[0], mate=mate, stalemate=stalemate, shah=shah, draw=draw, to_who=to_who)
+    return jsonify(legit=True, board=board)
 
 
 @app.route('/movement/<data>')
@@ -239,10 +233,8 @@ def get_statement(data):
     stalemate = chess.stalemate
     shah = chess.shah
     draw = chess.draw
-    to_who = (
-        chess.to_who
-    )  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
-    return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw)
+    to_who = (chess.to_who)  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
+    return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw, to_who=to_who)
 
 
 @app.route('/get_permission/<data>')
@@ -280,6 +272,14 @@ def main():
 
 def rotate_board(board: [[], ]):
     return [board[i].reverse() for i in range(7, -1, -1)]
+
+
+def to_site_board(board: str):
+    return board.replace('1', 'F').replace('2', 'FF').replace('3', 'FFF').replace('4', 'FFFF').replace('5', 'FFFFF').replace('6', 'FFFFFF').replace('7', 'FFFFFFF').replace('8', 'FFFFFFFF')
+
+
+def to_FEN_board(board: str):
+    return board.replace('FFFFFFFF', '8').replace('FFFFFFF', '7').replace('FFFFFF', '6').replace('FFFFF', '5').replace('FFFF', '4').replace('FFF', '3').replace('FF', '2').replace('F', '1')
 
 
 if __name__ == '__main__':

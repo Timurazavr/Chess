@@ -3,7 +3,7 @@ from copy import deepcopy
 
 class Chess:
     def __init__(
-        self, fen_str="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+            self, fen_str="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     ):
         self.field = [
             [None for _ in range(8)] for _ in range(8)
@@ -128,8 +128,8 @@ class Chess:
         for y in range(8):
             for x in range(8):
                 if (
-                    isinstance(self.field[y][x], King)
-                    and self.field[y][x].color == color
+                        isinstance(self.field[y][x], King)
+                        and self.field[y][x].color == color
                 ):
                     return self.field[y][x].x, self.field[y][x].y
 
@@ -146,13 +146,13 @@ class Chess:
         if not self.is_current_player_figure(x, y):
             return False
         if not self.field[y][x].can_move(new_x, new_y, self.field) or (
-            self.en_passant
-            and isinstance(self.field[y][x], Pawn)
-            and not self.field[y][x].can_move(new_x, new_y, self.field, self.en_passant)
-            or (
-                isinstance(self.field[y][x], King)
-                and not self.can_castle(x, y, new_x, new_y)
-            )
+                self.en_passant
+                and isinstance(self.field[y][x], Pawn)
+                and not self.field[y][x].can_move(new_x, new_y, self.field, self.en_passant)
+                or (
+                        isinstance(self.field[y][x], King)
+                        and not self.can_castle(x, y, new_x, new_y)
+                )
         ):
             # Может ли фигура переместиться в данную клетку
             return False
@@ -261,8 +261,8 @@ class Chess:
             self.castling_rights["Q" if rook.color == "white" else "q"] = False
 
         if (
-            isinstance(self.field[new_y][new_x], Pawn)
-            and (new_x, new_y) == self.en_passant
+                isinstance(self.field[new_y][new_x], Pawn)
+                and (new_x, new_y) == self.en_passant
         ):
             if self.field[new_y][new_x].color == "white":
                 captured_y = new_y + 1
@@ -277,7 +277,7 @@ class Chess:
 
         if isinstance(self.field[new_y][new_x], Pawn):
             if (self.field[new_y][new_x].color == "white" and new_y == 0) or (
-                self.field[new_y][new_x].color == "black" and new_y == 7
+                    self.field[new_y][new_x].color == "black" and new_y == 7
             ):
                 # Заменяем пешку на ферзя
                 self.field[new_y][new_x] = Queen(
@@ -360,7 +360,7 @@ class Figure:
 
 class Pawn(Figure):  # Пешка
     def can_move(
-        self, new_x: int, new_y: int, field: list[list], en_passant: tuple = None
+            self, new_x: int, new_y: int, field: list[list], en_passant: tuple = None
     ):
         if self.color == "white":
             # Обычный ход или взятие
@@ -383,8 +383,8 @@ class Pawn(Figure):  # Пешка
                         # Пешка противника должна быть на (new_x, new_y + 1)
                         adjacent_pawn = field[new_y + 1][new_x]
                         return (
-                            isinstance(adjacent_pawn, Pawn)
-                            and adjacent_pawn.color != self.color
+                                isinstance(adjacent_pawn, Pawn)
+                                and adjacent_pawn.color != self.color
                         )
                     return False
                 else:
@@ -407,8 +407,8 @@ class Pawn(Figure):  # Пешка
                     if en_passant == (new_x, new_y):
                         adjacent_pawn = field[new_y - 1][new_x]
                         return (
-                            isinstance(adjacent_pawn, Pawn)
-                            and adjacent_pawn.color != self.color
+                                isinstance(adjacent_pawn, Pawn)
+                                and adjacent_pawn.color != self.color
                         )
                     return False
                 else:
@@ -421,9 +421,9 @@ class Pawn(Figure):  # Пешка
 class Queen(Figure):  # Ферзь
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (
-            abs(self.x - new_x) == abs(self.y - new_y)
-            or self.x == new_x
-            or self.y == new_y
+                abs(self.x - new_x) == abs(self.y - new_y)
+                or self.x == new_x
+                or self.y == new_y
         ):
             # Проверка может ли физически переместиться в данную клетку
             return False
@@ -517,8 +517,8 @@ class Bishop(Figure):  # Офицер
 class Knight(Figure):  # Конь
     def can_move(self, new_x: int, new_y: int, field: list[list]):
         if not (
-            (abs(self.x - new_x) == 1 and abs(self.y - new_y) == 2)
-            or (abs(self.x - new_x) == 2 and abs(self.y - new_y) == 1)
+                (abs(self.x - new_x) == 1 and abs(self.y - new_y) == 2)
+                or (abs(self.x - new_x) == 2 and abs(self.y - new_y) == 1)
         ):
             # Проверка может ли физически переместиться в данную клетку
             return False

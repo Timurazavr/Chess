@@ -23,17 +23,17 @@ function start() {
     console.log(g_board);
     if (colour === 'white') {
         col = function (i) {
-            return (i % 10);
+            return (~~(i / 10));
         };
         row = function (i) {
-            return (9 - ~~(i / 10));
+            return (9 - i % 10);
         };
     } else {
         col = function (i) {
-            return (9 - i % 10)
+            return (9 - ~~(i / 10))
         };
         row = function (i) {
-            return (~~(i / 10))
+            return (i % 10)
         };
     }
     for (let i of ids) {
@@ -109,12 +109,24 @@ function fetching_and_waiting() { // checks everytime if there was new move or
         }
         update_board();
     }
+    if (game_stopped) {
+        let dots = 0
+        let numb = 30
+        while (numb !== 0) {
+            setTimeout(function () {
+                $('statement').text($('statement').text() + ` Выход через ${Math.ceil(numb / 3)}${(dots + 1) * '.'}`)
+                dots = (dots + 1) % 3
+            }, 333)
+            numb -= 1
+        }
+        window.location = $SCRIPT_ROOT
+    }
     setTimeout(fetching_and_waiting, 1000);
 }
 
 function update_board() {
     for (let i of ids) {
-        let texture = g_board[8 - ~~(i / 10)][i % 10 - 1];
+        let texture = g_board[8 - i % 10][~~(i / 10) - 1];
         if ((~~(i / 10) + i % 10) % 2 === 0) {
             document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/W_field/${texture}.png)`;
         } else {
@@ -124,7 +136,6 @@ function update_board() {
 }
 
 function pressed_fields(i) { // if you pressed 2 valid fields and move is valid site makes move
-
     let field = document.getElementById(String(i)).style.backgroundImage.toString().split('/').at(-1).split('.')[0];
     let press = ((field.toUpperCase() === field) === (colour === 'white')); // нажимаю ли я на свою фигуру
     if (field === 'F') {
@@ -145,6 +156,8 @@ function pressed_fields(i) { // if you pressed 2 valid fields and move is valid 
             if (legit) {
                 pushed = [];
                 console.log('movement was!');
+            } else {
+                console.log('bad movement');
             }
         } else {
             pushed.push(i);

@@ -214,7 +214,20 @@ def movement(data):
     session_id = data.split('&')[0]
     cord_from = [int(i) - 1 for i in data.split('&')[1]]
     cord_to = [int(i) - 1 for i in data.split('&')[2]]
-    SOME_INSTANCE = True  # todo проверка валидности хода, если валиден то сделать ход в д, ДОСКА МЕНЯЕТСЯ В КЛАССЕ ЛОГИКИ
+    db_sess = db_session.create_session()
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id, GameChess.is_finished == 0).first()
+    if not session:
+        return jsonify(legit=False)
+    board = eval(session.board)
+    chess = Chess(board[-1])
+    SOME_INSTANCE = chess.move(*cord_from, *cord_to)
+    print(SOME_INSTANCE)
+    if SOME_INSTANCE:
+        fen = chess.get_fen()
+        board.append(fen)
+        session.board = str(board)
+    db_sess.commit()
+    db_sess.close()
     return jsonify(legit=SOME_INSTANCE)
 
 
@@ -228,12 +241,16 @@ def get_statement(data):
     session = db_sess.query(GameChess).filter(GameChess.id == session_id, GameChess.is_finished == 0).first()
     if not session:
         return jsonify(legit=False)
-    chess = Chess(eval(session.board)[-1])  # пока что не написал конвертор, так что возвращает базовую доску
+    chess = Chess(eval(session.board)[-1])
     mate = chess.mate
     stalemate = chess.stalemate
     shah = chess.shah
     draw = chess.draw
-    to_who = (chess.to_who)  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
+    to_who = chess.to_who
+    if draw or mate or stalemate:
+        session.is_finished = 1
+        db_sess.commit()
+    db_sess.close()
     return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw, to_who=to_who)
 
 

@@ -1,4 +1,5 @@
 function start() {
+    document.getElementById('resign').onclick = resign
     $SCRIPT_ROOT = document.getElementById('script-root').innerText;
     session_id = document.getElementById('session').innerText;
     $.ajaxSetup({
@@ -12,6 +13,11 @@ function start() {
         colour = data.colour;
         g_board = data.board.split('/');
         whose_turn = data.whose_turn;
+        if (whose_turn === colour) {
+            document.getElementById('statement').innerText = `Твой ход.`;
+        } else {
+            document.getElementById('statement').innerText = `Ждём ход противника...`;
+        }
         document.getElementById('enemy_nickname').innerText = 'Противник: ' + data.enemy
     }).fail(function (jqXHR, textStatus, err) {
         console.log('error: get_session_data');
@@ -46,12 +52,30 @@ function start() {
     fetching_and_waiting();
 }
 
+
 function fetching_and_waiting() { // checks everytime if there was new move or
+    $.getJSON(`/is_finished/${session_id}`, function (data) {
+    }).done(function (data) {
+        if (data.is_finished) {
+            if (whose_turn === colour) {
+                $('statement').text('Вы сдались.')
+            } else {
+                $('statement').text('Противник сдался.')
+            }
+            ending()
+        }
+    }).fail(function (jqXHR, textStatus, err) {
+        console.log('error: is_finished');
+    });
     let board_db;
     $.getJSON(`/get_board/${session_id}`, function (data) {
     }).done(function (data) {
         if (!data.legit) {
             window.location = $SCRIPT_ROOT + "error";
+        }
+        if (data.end) {
+            game_stopped = true
+            ending()
         }
         board_db = data.board.split('/');
     }).fail(function (jqXHR, textStatus, err) {
@@ -104,24 +128,15 @@ function fetching_and_waiting() { // checks everytime if there was new move or
             if (whose_turn === colour) {
                 document.getElementById('statement').innerText = `Твой ход.`;
             } else {
-                document.getElementById('statement').innerText = `Ждём хода противника...`;
+                document.getElementById('statement').innerText = `Ждём ход противника...`;
             }
         }
         update_board();
     }
     if (game_stopped) {
-        let dots = 0
-        let numb = 30
-        while (numb !== 0) {
-            setTimeout(function () {
-                $('statement').text($('statement').text() + ` Выход через ${Math.ceil(numb / 3)}${(dots + 1) * '.'}`)
-                dots = (dots + 1) % 3
-            }, 333)
-            numb -= 1
-        }
-        window.location = $SCRIPT_ROOT
+        ending();
     }
-    setTimeout(fetching_and_waiting, 1000);
+    setTimeout(fetching_and_waiting, 333);
 }
 
 function update_board() {
@@ -153,19 +168,52 @@ function pressed_fields(i) { // if you pressed 2 valid fields and move is valid 
                 console.log('error: movement');
                 window.location = $SCRIPT_ROOT + "error";
             });
+            let elem = document.getElementById(String(pushed[0]))
+            elem.style.boxShadow = ''
+            elem.style.zIndex = ''
+            pushed = [];
             if (legit) {
-                pushed = [];
                 console.log('movement was!');
             } else {
-                console.log('bad movement');
+                console.log('bad movement, logic said that');
             }
         } else {
             pushed.push(i);
+            let elem = document.getElementById(String(i))
+            elem.style.boxShadow = '5px 5px 4px 1px #ffffffff, -5px -5px 4px 1px #ffffffff, -5px 5px 4px 1px #ffffffff, 5px -5px 4px 1px #ffffffff'
+            elem.style.zIndex = '1'
         }
     } else {
+        let elem = document.getElementById(String(pushed[0]))
+        elem.style.boxShadow = ''
+        elem.style.zIndex = ''
         pushed = [];
         console.log('bad movement');
     }
+}
+
+function resign() {
+    if (whose_turn === colour) {
+        $.getJSON(`/resign/${session_id}`, function (daa) {
+        }).done(function (data) {
+
+        }).fail(function (jqXHR, textStatus, err) {
+            console.log('error: movement');
+        });
+    }
+}
+
+function ending() {
+    let dots = 0
+    let numb = 30
+    while (numb !== 0) {
+        setTimeout(function () {
+            $('statement').text($('statement').text() + ` Выход через ${Math.ceil(numb / 3)}${(dots + 1) * '.'}`)
+            dots = (dots + 1) % 3
+        }, 333)
+        numb -= 1
+    }
+    window.location = $SCRIPT_ROOT
 }
 
 let game_stopped = false;

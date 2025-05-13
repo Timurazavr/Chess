@@ -59,7 +59,7 @@ def waiting():
                 return redirect(f'/session/{sess.id}')
         except Exception as e:
             if len(db_sess.query(GameChess).filter(GameChess.black_id == -1, GameChess.is_finished == 0).all()) != 0:
-                game = db_sess.query(GameChess).first()
+                game = db_sess.query(GameChess).filter(GameChess.black_id == -1, GameChess.is_finished == 0).first()
                 game.black_id = current_user.id
                 db_sess.commit()
                 return redirect(f'/session/{game.id}')
@@ -199,12 +199,12 @@ def get_board(session_id):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
     db_sess = db_session.create_session()
-    session = db_sess.query(GameChess).filter(GameChess.id == session_id, GameChess.is_finished == 0).first()
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
     if not session:
         return jsonify(legit=False)
     board = to_site_board(eval(session.board)[-1].split()[0])
     db_sess.close()
-    return jsonify(legit=True, board=board)
+    return jsonify(legit=True, board=board, end=session.is_finished == 1)
 
 
 @app.route('/movement/<data>')
@@ -212,21 +212,22 @@ def movement(data):
     if not request.script_root:
         request.root_path = url_for('index', _external=True)
     session_id = data.split('&')[0]
-    cord_from = [int(i) - 1 for i in data.split('&')[1]]
-    cord_to = [int(i) - 1 for i in data.split('&')[2]]
+    cord_from = (int(data.split('&')[1][0]) - 1, 8 - int(data.split('&')[1][1]))
+    cord_to = (int(data.split('&')[2][0]) - 1, 8 - int(data.split('&')[2][1]))
     db_sess = db_session.create_session()
     session = db_sess.query(GameChess).filter(GameChess.id == session_id, GameChess.is_finished == 0).first()
     if not session:
         return jsonify(legit=False)
     board = eval(session.board)
     chess = Chess(board[-1])
+    print(cord_from, cord_to)
     SOME_INSTANCE = chess.move(*cord_from, *cord_to)
     print(SOME_INSTANCE)
     if SOME_INSTANCE:
         fen = chess.get_fen()
         board.append(fen)
         session.board = str(board)
-    db_sess.commit()
+        db_sess.commit()
     db_sess.close()
     return jsonify(legit=SOME_INSTANCE)
 
@@ -280,6 +281,29 @@ def get_my_sessions():
     db_sess.close()
     print('have_sessions:', have_sessions)
     return jsonify(have_sessions=have_sessions)
+
+
+@app.route('/resign/<string:session_id>')
+def resign(session_id):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    db_sess = db_session.create_session()
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
+    session.is_finished = 1
+    db_sess.commit()
+    db_sess.close()
+    print('resign')
+    return jsonify()
+
+
+@app.route('/is_finished/<string:session_id>')
+def is_finished(session_id):
+    if not request.script_root:
+        request.root_path = url_for('index', _external=True)
+    db_sess = db_session.create_session()
+    is_finished = db_sess.query(GameChess).filter(GameChess.id == session_id).first().is_finished
+    db_sess.close()
+    return jsonify(is_finished=bool(is_finished))
 
 
 def main():

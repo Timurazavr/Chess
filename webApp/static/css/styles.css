@@ -7,7 +7,7 @@
 
 .board {
     display: grid;
-    position: absolute;
+    position: inherit;
     grid-template-rows: repeat(8, auto);
     grid-template-columns: repeat(8, auto);
 }

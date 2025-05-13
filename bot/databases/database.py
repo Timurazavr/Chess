@@ -15,6 +15,17 @@ def get_user(id: int):
     return result[0]
 
 
+def get_sess(id: int):
+    cur = db.cursor()
+    result = cur.execute(
+        f"""SELECT session
+            FROM Users
+            WHERE id == {id}
+        """
+    ).fetchone()
+    return result[0]
+
+
 def add_user(id: int, last_message_id: int) -> None:
     cur = db.cursor()
     cur.execute(
@@ -29,6 +40,16 @@ def chang_user(id: int, last_message_id: int) -> None:
     cur.execute(
         f"""UPDATE Users
                 SET last_message_id = {last_message_id}
+            WHERE id == {id}""",
+    )
+    db.commit()
+
+
+def chang_sess(id: int, sess) -> None:
+    cur = db.cursor()
+    cur.execute(
+        f"""UPDATE Users
+                SET session = {sess}
             WHERE id == {id}""",
     )
     db.commit()

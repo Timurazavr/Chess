@@ -1,4 +1,4 @@
-from secret import API_TOKEN, ADMIN_IDS
+from bot.secret import API_TOKEN, ADMIN_IDS
 from dataclasses import dataclass
 
 

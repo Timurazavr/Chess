@@ -54,7 +54,7 @@ def waiting():
             if sess.black_id == -2:
                 return render_template('waiting.html')
             elif sess.black_id == -1:
-                pass
+                raise Exception
             else:
                 return redirect(f'/session/{sess.id}')
         except Exception as e:
@@ -176,6 +176,12 @@ def test():
     return render_template('session.html')
 
 
+@app.route('/test2')
+def test2():
+    print('da')
+    return jsonify()
+
+
 @app.route('/get_session_data/<session_id>')
 def get_session_data(session_id):
     if not request.script_root:
@@ -239,7 +245,7 @@ def get_statement(data):
     session_id = data.split("&")[0]
     colour = data.split("&")[1]
     db_sess = db_session.create_session()
-    session = db_sess.query(GameChess).filter(GameChess.id == session_id, GameChess.is_finished == 0).first()
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
     if not session:
         return jsonify(legit=False)
     chess = Chess(eval(session.board)[-1])

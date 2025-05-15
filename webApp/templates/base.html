@@ -1,37 +1,36 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     {% block script %}{% endblock %}
     <meta charset="UTF-8">
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <title>{% block title %}{% endblock %}</title>
-    <link
-            rel="stylesheet"
-            href="{{ url_for('static', filename='css/styles.css') }}"
-            type="text/css"
-    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" type="text/css">
 </head>
+
 <body>
-<div class="general_content_holder">
-    <h1>Онлайн шахматы</h1>
-    <p hidden="hidden" id="script-root">{{ (request.script_root|tojson|safe).replace('"', '') }}</p>
-    <p hidden="hidden" id="spongebob_link">{{ url_for('static', filename='img/spongebob.gif') }}</p>
-    <hr>
-    <nav>
-        {% if current_user.is_authenticated %}
-        <h2 class="navbar-brand">{{ current_user.name }}</h2>
-        <a class="btn btn-danger" href="/logout">Выйти</a>
-        {% else %}
-        <p>
-            <a class="btn btn-primary " href="/register">Зарегистрироваться</a>
-            <a class="btn btn-success" href="/login">Войти</a>
-        </p>
-        {% endif %}
-    </nav>
-    <hr>
-    <div>
-        <div class="game">{% block content %}{% endblock %}</div>
+    <div class="general_content_holder">
+        <h1>Онлайн шахматы</h1>
+        <p hidden="hidden" id="script-root">{{ (request.script_root|tojson|safe).replace('"', '') }}</p>
+        <p hidden="hidden" id="spongebob_link">{{ url_for('static', filename='img/spongebob.gif') }}</p>
+        <hr>
+        <nav>
+            {% if current_user.is_authenticated %}
+            <h2 class="navbar-brand">{{ current_user.name }}</h2>
+            <a class="btn btn-danger" href="/logout">Выйти</a>
+            {% else %}
+            <p>
+                <a class="btn btn-primary " href="/register">Зарегистрироваться</a>
+                <a class="btn btn-success" href="/login">Войти</a>
+            </p>
+            {% endif %}
+        </nav>
+        <hr>
+        <div>
+            <div class="game">{% block content %}{% endblock %}</div>
+        </div>
     </div>
-</div>
 </body>
+
 </html>

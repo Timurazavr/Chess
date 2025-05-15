@@ -6,7 +6,7 @@ function update_values() {
     element.innerHTML = cons + '.'.repeat(dots + 1);
     $SCRIPT_ROOT = document.getElementById('script-root').innerText;
     $.getJSON("/check", function (data) {
-        if (!data.legit){
+        if (!data.legit) {
             window.location = $SCRIPT_ROOT + "error";
         }
         if (data.start_game) {

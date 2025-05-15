@@ -6,9 +6,9 @@ from aiogram.fsm.state import default_state, State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from bot.lexicon.lexicon import LEXICON
 from bot.keyboards.pagination_kb import create_keyboard, create_keyboard_chess
-from bot.databases.db_session import create_session
-from bot.databases.users_tg import User_tg
-from bot.databases.games_chess import GameChess
+from database.db_session import create_session
+from database.users_tg import User_tg
+from database.games_chess import GameChess
 from game_logic.chess_logic import Chess
 import os
 

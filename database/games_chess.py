@@ -1,6 +1,7 @@
 import sqlalchemy
 from .db_session import SqlAlchemyBase
-from sqlalchemy import orm
+
+# from sqlalchemy import orm
 
 
 class GameChess(SqlAlchemyBase):
@@ -11,10 +12,6 @@ class GameChess(SqlAlchemyBase):
     black_id = sqlalchemy.Column(sqlalchemy.Integer, default=-1)
     board = sqlalchemy.Column(
         sqlalchemy.String,
-        default=str(
-            [
-                "rnbqkbnr/pppppppp/FFFFFFFF/FFFFFFFF/FFFFFFFF/FFFFFFFF/PPPPPPPP/RNBQKBNR w KQkq - 1"
-            ]
-        ),
+        default=str(["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]),
     )
     is_finished = sqlalchemy.Column(sqlalchemy.Boolean, default=False)

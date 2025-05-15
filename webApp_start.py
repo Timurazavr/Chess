@@ -1,6 +1,7 @@
-from flask import Flask, request, redirect, jsonify, make_response, url_for
+import json
+
+from flask import Flask, request, redirect, jsonify, url_for
 from flask import render_template
-from data import db_session
 from flask_login import (
     LoginManager,
     login_user,
@@ -8,18 +9,29 @@ from flask_login import (
     current_user,
     login_required,
 )
-from data.users import User
-from data.games_chess import GameChess
-from forms.register import RegisterForm
-from forms.login import LoginForm
+from database import db_session
+from database.users import User
+from database.games_chess import GameChess
+from webApp.forms.register import RegisterForm
+from webApp.forms.login import LoginForm
 from game_logic.chess_logic import Chess
+from os.path import join
+import sys
 
 # for linux absolute path
 # for windows relative path
-PATH_TO_DB_FOLDER = "/home/pashok/PycharmProjects/chess/db"
-app = Flask(__name__)
+CONFIG = json.load(open("config.json", "r"))
+if sys.platform.startswith("win"):
+    PATH_TO_DB_FOLDER = CONFIG["PATH_TO_CHESS_FOLDER_WIN"]
+else:
+    PATH_TO_DB_FOLDER = CONFIG["PATH_TO_CHESS_FOLDER"]
+app = Flask(
+    __name__,
+    template_folder=join("webApp", "templates"),
+    static_folder=join("webApp", "static"),
+)
 # IMPORTANT SECRET KEY
-app.config["SECRET_KEY"] = open("static/SECRET_KEY", "r").read().strip()
+app.config["SECRET_KEY"] = CONFIG["SECRET_KEY"]
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -70,7 +82,7 @@ def waiting():
             if sess.black_id == -2:
                 return render_template("waiting.html")
             elif sess.black_id == -1:
-                pass
+                raise Exception
             else:
                 return redirect(f"/session/{sess.id}")
         except Exception as e:
@@ -82,7 +94,11 @@ def waiting():
                 )
                 != 0
             ):
-                game = db_sess.query(GameChess).first()
+                game = (
+                    db_sess.query(GameChess)
+                    .filter(GameChess.black_id == -1, GameChess.is_finished == 0)
+                    .first()
+                )
                 game.black_id = current_user.id
                 db_sess.commit()
                 return redirect(f"/session/{game.id}")
@@ -225,6 +241,12 @@ def test():
     return render_template("session.html")
 
 
+@app.route("/test2")
+def test2():
+    print("da")
+    return jsonify()
+
+
 @app.route("/get_session_data/<session_id>")
 def get_session_data(session_id):
     if not request.script_root:
@@ -240,7 +262,7 @@ def get_session_data(session_id):
     colour = "white" if session.white_id == current_user.id else "black"
     enemy_id = session.black_id if colour == "white" else session.white_id
     position = eval(session.board)
-    board = position[-1].split()[0]
+    board = to_site_board(position[-1].split()[0])
     enemy = db_sess.query(User).filter(User.id == enemy_id).first().nickname
     whose_turn = "white" if position[-1].split()[1] == "w" else "black"
     db_sess.close()
@@ -254,32 +276,12 @@ def get_board(session_id):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
-    session = (
-        db_sess.query(GameChess)
-        .filter(GameChess.id == session_id, GameChess.is_finished == 0)
-        .first()
-    )
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
     if not session:
         return jsonify(legit=False)
-    board = eval(session.board)[-1]
-    chess = Chess(board)
-    mate = chess.mate
-    stalemate = chess.stalemate
-    shah = chess.shah
-    draw = chess.draw
-    to_who = (
-        chess.to_who
-    )  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
+    board = to_site_board(eval(session.board)[-1].split()[0])
     db_sess.close()
-    return jsonify(
-        legit=True,
-        board=board.split()[0],
-        mate=mate,
-        stalemate=stalemate,
-        shah=shah,
-        draw=draw,
-        to_who=to_who,
-    )
+    return jsonify(legit=True, board=board, end=session.is_finished == 1)
 
 
 @app.route("/movement/<data>")
@@ -287,8 +289,8 @@ def movement(data):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     session_id = data.split("&")[0]
-    cord_from = [int(i) - 1 for i in data.split("&")[1]]
-    cord_to = [int(i) - 1 for i in data.split("&")[2]]
+    cord_from = (int(data.split("&")[1][0]) - 1, 8 - int(data.split("&")[1][1]))
+    cord_to = (int(data.split("&")[2][0]) - 1, 8 - int(data.split("&")[2][1]))
     db_sess = db_session.create_session()
     session = (
         db_sess.query(GameChess)
@@ -297,16 +299,17 @@ def movement(data):
     )
     if not session:
         return jsonify(legit=False)
-    board = eval(session.board)[-1]
-    chess = Chess(board)
-    SOME_INSTANCE = chess.move(
-        *cord_from, *cord_to
-    )  # todo проверка валидности хода, если валиден то сделать ход в д, ДОСКА МЕНЯЕТСЯ В КЛАССЕ ЛОГИКИ
-    if SOME_INSTANCE:  # Если ход валиден
-        fen = (
-            chess.get_fen()
-        )  # Возвращает fen нотацию, сделай, чтобы она записывалась в дб
-        # Или можем вынести дб в общую папку и тогда запись будет происходить внутри самой логики
+    board = eval(session.board)
+    chess = Chess(board[-1])
+    print(cord_from, cord_to)
+    SOME_INSTANCE = chess.move(*cord_from, *cord_to)
+    print(SOME_INSTANCE)
+    if SOME_INSTANCE:
+        fen = chess.get_fen()
+        board.append(fen)
+        session.board = str(board)
+        db_sess.commit()
+    db_sess.close()
     return jsonify(legit=SOME_INSTANCE)
 
 
@@ -317,11 +320,7 @@ def get_statement(data):
     session_id = data.split("&")[0]
     colour = data.split("&")[1]
     db_sess = db_session.create_session()
-    session = (
-        db_sess.query(GameChess)
-        .filter(GameChess.id == session_id, GameChess.is_finished == 0)
-        .first()
-    )
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
     if not session:
         return jsonify(legit=False)
     chess = Chess(eval(session.board)[-1])
@@ -329,10 +328,14 @@ def get_statement(data):
     stalemate = chess.stalemate
     shah = chess.shah
     draw = chess.draw
-    to_who = (
-        chess.to_who
-    )  # Если был шах или мат, то это поле - цвет того кому поставили шах/мат ('white' / 'black'). Если не шах/мат, то вообще безразницы чему равно
-    return jsonify(legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw)
+    to_who = chess.to_who
+    if draw or mate or stalemate:
+        session.is_finished = 1
+        db_sess.commit()
+    db_sess.close()
+    return jsonify(
+        legit=True, stalemate=stalemate, mate=mate, shah=shah, draw=draw, to_who=to_who
+    )
 
 
 @app.route("/get_permission/<data>")
@@ -377,9 +380,29 @@ def get_my_sessions():
     return jsonify(have_sessions=have_sessions)
 
 
-def main():
-    db_session.global_init(PATH_TO_DB_FOLDER + "/data.db")
-    app.run(host="0.0.0.0", port=5000)
+@app.route("/resign/<string:session_id>")
+def resign(session_id):
+    if not request.script_root:
+        request.root_path = url_for("index", _external=True)
+    db_sess = db_session.create_session()
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
+    session.is_finished = 1
+    db_sess.commit()
+    db_sess.close()
+    print("resign")
+    return jsonify()
+
+
+@app.route("/is_finished/<string:session_id>")
+def is_finished(session_id):
+    if not request.script_root:
+        request.root_path = url_for("index", _external=True)
+    db_sess = db_session.create_session()
+    is_finished = (
+        db_sess.query(GameChess).filter(GameChess.id == session_id).first().is_finished
+    )
+    db_sess.close()
+    return jsonify(is_finished=bool(is_finished))
 
 
 def rotate_board(
@@ -388,7 +411,31 @@ def rotate_board(
     return [board[i].reverse() for i in range(7, -1, -1)]
 
 
-if __name__ == "__main__":
-    main()
-else:
-    main()
+def to_site_board(board: str):
+    return (
+        board.replace("1", "F")
+        .replace("2", "FF")
+        .replace("3", "FFF")
+        .replace("4", "FFFF")
+        .replace("5", "FFFFF")
+        .replace("6", "FFFFFF")
+        .replace("7", "FFFFFFF")
+        .replace("8", "FFFFFFFF")
+    )
+
+
+def to_FEN_board(board: str):
+    return (
+        board.replace("FFFFFFFF", "8")
+        .replace("FFFFFFF", "7")
+        .replace("FFFFFF", "6")
+        .replace("FFFFF", "5")
+        .replace("FFFF", "4")
+        .replace("FFF", "3")
+        .replace("FF", "2")
+        .replace("F", "1")
+    )
+
+
+db_session.global_init(join(PATH_TO_DB_FOLDER, "db", "data.db"))
+app.run(host="0.0.0.0", port=CONFIG["port"])

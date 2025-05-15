@@ -11,4 +11,4 @@ class User_tg(SqlAlchemyBase):
     session_id = sqlalchemy.Column(
         sqlalchemy.Integer, sqlalchemy.ForeignKey("games.id")
     )
-    session = orm.relationship("Game", backref="users_tg")
+    session = orm.relationship("GameChess", backref="users_tg")

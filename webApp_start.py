@@ -10,8 +10,8 @@ from flask_login import (
     login_required,
 )
 from database import db_session
-from database.users_web import User_web
-from database.games import Game
+from database.users import User
+from database.games_chess import GameChess
 from webApp.forms.register import RegisterForm
 from webApp.forms.login import LoginForm
 from game_logic.chess_logic import Chess
@@ -41,10 +41,14 @@ login_manager.init_app(app)
 def load_user(user_id):
     db_sess = db_session.create_session()
 <<<<<<< HEAD
+<<<<<<< HEAD
     usr = db_sess.get(User_web, user_id)
 =======
     usr = db_sess.query(User).get(user_id)
 >>>>>>> origin/master
+=======
+    usr = db_sess.query(User).get(user_id)
+>>>>>>> parent of b28b61c (the raw final version)
     db_sess.close()
     return usr
 
@@ -89,13 +93,13 @@ def waiting():
         db_sess = db_session.create_session()
         try:
             sess = (
-                db_sess.query(Game)
+                db_sess.query(GameChess)
                 .filter(
                     (
-                        (Game.white_id == current_user.id)
-                        | (Game.black_id == current_user.id)
+                        (GameChess.white_id == current_user.id)
+                        | (GameChess.black_id == current_user.id)
                     ),
-                    Game.is_finished == 0,
+                    GameChess.is_finished == 0,
                 )
                 .first()
             )
@@ -110,21 +114,21 @@ def waiting():
         except Exception as e:
             if (
                 len(
-                    db_sess.query(Game)
-                    .filter(Game.black_id == -1, Game.is_finished == 0)
+                    db_sess.query(GameChess)
+                    .filter(GameChess.black_id == -1, GameChess.is_finished == 0)
                     .all()
                 )
                 != 0
             ):
                 game = (
-                    db_sess.query(Game)
-                    .filter(Game.black_id == -1, Game.is_finished == 0)
+                    db_sess.query(GameChess)
+                    .filter(GameChess.black_id == -1, GameChess.is_finished == 0)
                     .first()
                 )
                 game.black_id = current_user.id
                 db_sess.commit()
                 return redirect(f"/session/{game.id}")
-            game = Game(white_id=current_user.id)
+            game = GameChess(white_id=current_user.id)
             db_sess.add(game)
             db_sess.commit()
         db_sess.close()
@@ -138,8 +142,8 @@ def waiting():
 def check():
     db_sess = db_session.create_session()
     session = (
-        db_sess.query(Game)
-        .filter(Game.white_id == current_user.id, Game.is_finished == 0)
+        db_sess.query(GameChess)
+        .filter(GameChess.white_id == current_user.id, GameChess.is_finished == 0)
         .first()
     )
     if not session:
@@ -148,7 +152,7 @@ def check():
         return jsonify(
             legit=True, start_game=False, black_id=session.black_id, session=session.id
         )
-    enemy = db_sess.get(User_web, session.black_id)
+    enemy = db_sess.query(User).filter(User.id == session.black_id).first()
     db_sess.close()
     return jsonify(
         legit=True, start_game=True, session=session.id, enemy=enemy.nickname
@@ -176,13 +180,13 @@ def way_to_play(way: str):
             db_sess = db_session.create_session()
             try:
                 sess = (
-                    db_sess.query(Game)
-                    .filter(Game.id == int(way), Game.is_finished == 0)
+                    db_sess.query(GameChess)
+                    .filter(GameChess.id == int(way), GameChess.is_finished == 0)
                     .first()
                 )
                 if not sess:
                     raise Exception
-                if sess.black_id in (-1, -2):
+                if sess.black_id == -2:
                     sess.black_id = current_user.id
                     db_sess.commit()
                     db_sess.close()
@@ -268,6 +272,7 @@ def way_to_play(way: str):
                 )
         elif way == "create":
             db_sess = db_session.create_session()
+<<<<<<< HEAD
             obj = Game(white_id=current_user.id)
 =======
                 return render_template('start_game.html', message='Неправильный id игры')
@@ -275,6 +280,9 @@ def way_to_play(way: str):
             db_sess = db_session.create_session()
             obj = GameChess(white_id=current_user.id)
 >>>>>>> origin/master
+=======
+            obj = GameChess(white_id=current_user.id)
+>>>>>>> parent of b28b61c (the raw final version)
             obj.black_id = -2
             db_sess.add(obj)
             db_sess.commit()
@@ -306,17 +314,14 @@ def register():
                 message="Пароли не совпадают",
             )
         db_sess = db_session.create_session()
-        if (
-            db_sess.query(User_web)
-            .filter(User_web.nickname == form.nickname.data)
-            .first()
-        ):
+        if db_sess.query(User).filter(User.nickname == form.nickname.data).first():
             return render_template(
                 "register.html",
                 title="Регистрация",
                 form=form,
                 message="Такой пользователь уже есть",
             )
+<<<<<<< HEAD
         user = User_web(nickname=form.nickname.data)
 =======
             return render_template('register.html', title='Регистрация', form=form, message="Пароли не совпадают")
@@ -325,6 +330,9 @@ def register():
             return render_template('register.html', title='Регистрация', form=form, message="Такой пользователь уже есть")
         user = User(nickname=form.nickname.data)
 >>>>>>> origin/master
+=======
+        user = User(nickname=form.nickname.data)
+>>>>>>> parent of b28b61c (the raw final version)
         user.set_password(form.password.data)
         db_sess.add(user)
         db_sess.commit()
@@ -347,6 +355,7 @@ def login():
     if form.validate_on_submit():
         db_sess = db_session.create_session()
 <<<<<<< HEAD
+<<<<<<< HEAD
         user = (
             db_sess.query(User_web)
             .filter(User_web.nickname == form.nickname.data)
@@ -355,6 +364,9 @@ def login():
 =======
         user = db_sess.query(User).filter(User.nickname == form.nickname.data).first()
 >>>>>>> origin/master
+=======
+        user = db_sess.query(User).filter(User.nickname == form.nickname.data).first()
+>>>>>>> parent of b28b61c (the raw final version)
         db_sess.close()
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember_me.data)
@@ -399,7 +411,9 @@ def get_session_data(session_id):
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
     session = (
-        db_sess.query(Game).filter(Game.id == session_id, Game.is_finished == 0).first()
+        db_sess.query(GameChess)
+        .filter(GameChess.id == session_id, GameChess.is_finished == 0)
+        .first()
     )
     if not session:
         return jsonify(legit=False)
@@ -407,7 +421,7 @@ def get_session_data(session_id):
     enemy_id = session.black_id if colour == "white" else session.white_id
     position = eval(session.board)
     board = to_site_board(position[-1].split()[0])
-    enemy = db_sess.query(User_web).filter(User_web.id == enemy_id).first().nickname
+    enemy = db_sess.query(User).filter(User.id == enemy_id).first().nickname
     whose_turn = "white" if position[-1].split()[1] == "w" else "black"
     db_sess.close()
     return jsonify(
@@ -420,6 +434,7 @@ def get_board(session_id):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
+<<<<<<< HEAD
     session = db_sess.query(Game).filter(Game.id == session_id).first()
 =======
 @app.route('/test')
@@ -460,6 +475,9 @@ def get_board(session_id):
     db_sess = db_session.create_session()
     session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
 >>>>>>> origin/master
+=======
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
+>>>>>>> parent of b28b61c (the raw final version)
     if not session:
         return jsonify(legit=False)
     board = to_site_board(eval(session.board)[-1].split()[0])
@@ -477,7 +495,9 @@ def movement(data):
     cord_to = (int(data.split("&")[2][0]) - 1, 8 - int(data.split("&")[2][1]))
     db_sess = db_session.create_session()
     session = (
-        db_sess.query(Game).filter(Game.id == session_id, Game.is_finished == 0).first()
+        db_sess.query(GameChess)
+        .filter(GameChess.id == session_id, GameChess.is_finished == 0)
+        .first()
     )
 =======
 @app.route('/movement/<data>')
@@ -518,10 +538,14 @@ def get_statement(data):
     colour = data.split("&")[1]
     db_sess = db_session.create_session()
 <<<<<<< HEAD
+<<<<<<< HEAD
     session = db_sess.query(Game).filter(Game.id == session_id).first()
 =======
     session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
 >>>>>>> origin/master
+=======
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
+>>>>>>> parent of b28b61c (the raw final version)
     if not session:
         return jsonify(legit=False)
     chess = Chess(eval(session.board)[-1])
@@ -545,7 +569,11 @@ def get_permission(data):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
-    if db_sess.query(Game).filter(Game.id == data, Game.is_finished == 0).first():
+    if (
+        db_sess.query(GameChess)
+        .filter(GameChess.id == data, GameChess.is_finished == 0)
+        .first()
+    ):
         db_sess.close()
         print("permission:", True)
         return jsonify(permission=True)
@@ -560,10 +588,13 @@ def get_my_sessions():
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
     if (
-        db_sess.query(Game)
+        db_sess.query(GameChess)
         .filter(
-            ((Game.white_id == current_user.id) | (Game.black_id == current_user.id)),
-            Game.is_finished == 0,
+            (
+                (GameChess.white_id == current_user.id)
+                | (GameChess.black_id == current_user.id)
+            ),
+            GameChess.is_finished == 0,
         )
         .first()
     ):
@@ -606,7 +637,7 @@ def resign(session_id):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
-    session = db_sess.query(Game).filter(Game.id == session_id).first()
+    session = db_sess.query(GameChess).filter(GameChess.id == session_id).first()
     session.is_finished = 1
     db_sess.commit()
     db_sess.close()
@@ -619,6 +650,7 @@ def is_finished(session_id):
     if not request.script_root:
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
+<<<<<<< HEAD
     is_finished = db_sess.query(Game).filter(Game.id == session_id).first().is_finished
 =======
     print('have_sessions:', have_sessions)
@@ -645,6 +677,11 @@ def is_finished(session_id):
     db_sess = db_session.create_session()
     is_finished = db_sess.query(GameChess).filter(GameChess.id == session_id).first().is_finished
 >>>>>>> origin/master
+=======
+    is_finished = (
+        db_sess.query(GameChess).filter(GameChess.id == session_id).first().is_finished
+    )
+>>>>>>> parent of b28b61c (the raw final version)
     db_sess.close()
     return jsonify(is_finished=bool(is_finished))
 

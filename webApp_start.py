@@ -9,7 +9,8 @@ from flask_login import (
     current_user,
     login_required,
 )
-from database import db_session
+from flask_restful import Api
+from database import db_session, games_resource
 from database.users_web import User_web
 from database.games import Game
 from webApp.forms.register import RegisterForm
@@ -30,6 +31,9 @@ app = Flask(
     template_folder=join("webApp", "templates"),
     static_folder=join("webApp", "static"),
 )
+api = Api(app)
+api.add_resource(games_resource.GamesListResource, "/api/games")
+api.add_resource(games_resource.GamesResource, "/api/games/<int:game_id>")
 # IMPORTANT SECRET KEY
 app.config["SECRET_KEY"] = CONFIG["SECRET_KEY"]
 
@@ -432,5 +436,5 @@ def to_FEN_board(board: str):
     )
 
 
-db_session.global_init(join("database", "data.db"))
+db_session.global_init(join(PATH_TO_DB_FOLDER, "database", "data.db"))
 app.run(host="0.0.0.0", port=CONFIG["port"])

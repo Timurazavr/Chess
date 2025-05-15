@@ -1,4 +1,5 @@
 from aiogram import Bot, Dispatcher
+from os.path import join
 import asyncio
 import logging
 
@@ -23,7 +24,7 @@ async def main():
     # Выводим в консоль информацию о начале запуска бота
     logger.info("Starting bot")
 
-    global_init("db/data.db")
+    global_init(join("database", "data.db"))
     # Загружаем конфиг в переменную config
     config: Config = load_config()
 

@@ -437,5 +437,5 @@ def to_FEN_board(board: str):
     )
 
 
-db_session.global_init(join(PATH_TO_DB_FOLDER, "db", "data.db"))
+db_session.global_init(join("database", "data.db"))
 app.run(host="0.0.0.0", port=CONFIG["port"])

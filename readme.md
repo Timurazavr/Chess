@@ -26,6 +26,6 @@ Chess - кросс-платформенный проект про шахматы
 ****
 **Запуск программы**
 
-* `supervisord`
+* `supervisord -c /etc/supervisor/supervisord.conf`
 
 Не подробная но лаконичная информация о supervisor на сайте https://codex.so/supervisor

@@ -1,19 +1,22 @@
+import json
+
 from flask import Flask, request, redirect, jsonify, make_response, url_for
 from flask import render_template
-from data import db_session
+from webApp.data import db_session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
-from data.users import User
-from data.games_chess import GameChess
-from forms.register import RegisterForm
-from forms.login import LoginForm
+from webApp.data.users import User
+from webApp.data.games_chess import GameChess
+from webApp.forms.register import RegisterForm
+from webApp.forms.login import LoginForm
 from game_logic.chess_logic import Chess
 
 # for linux absolute path
 # for windows relative path
-PATH_TO_DB_FOLDER = '/home/pashok/PycharmProjects/chess/db'
-app = Flask(__name__)
+CONFIG = json.load(open('config.json', 'r'))
+PATH_TO_DB_FOLDER = CONFIG['PATH_TO_CHESS_FOLDER']
+app = Flask(__name__, template_folder='webApp/templates', static_folder='webApp/static')
 # IMPORTANT SECRET KEY
-app.config['SECRET_KEY'] = open('static/SECRET_KEY', 'r').read().strip()
+app.config['SECRET_KEY'] = CONFIG['SECRET_KEY']
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -313,8 +316,8 @@ def is_finished(session_id):
 
 
 def main():
-    db_session.global_init(PATH_TO_DB_FOLDER + "/data.db")
-    app.run(host='0.0.0.0', port=64488)
+    db_session.global_init(PATH_TO_DB_FOLDER + "/db/data.db")
+    app.run(host='0.0.0.0', port=CONFIG['port'])
 
 
 def rotate_board(board: [[], ]):

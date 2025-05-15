@@ -15,12 +15,3 @@
 .game {
     display: inline-block;
 }
-
-#session_div {
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.game_buttons {
-    display: inline-block;
-}

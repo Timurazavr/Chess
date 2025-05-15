@@ -2,6 +2,7 @@
 
 {% block content %}
 <div id="session_div">
+<div id="session_div">
     <p hidden="hidden" id="session">{{ session_id }}</p>
     <h1 id="enemy_nickname"></h1>
     <div class="board" id="board">
@@ -70,6 +71,10 @@
         <button class="image-button" id="87"></button>
         <button class="image-button" id="88"></button>
     </div>
+    <button id="resign" class="game_buttons">Resign</button>
+    <button id="walkback" hidden="">Выйти</button>
+    <h2 id="statement"></h2>
+</div>
     <button id="resign" class="game_buttons">Resign</button>
     <button id="walkback" hidden="">Выйти</button>
     <h2 id="statement"></h2>

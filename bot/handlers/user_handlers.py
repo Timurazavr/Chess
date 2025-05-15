@@ -1,6 +1,6 @@
 from aiogram import F, Router, Bot
 from aiogram.filters import CommandStart, StateFilter, Command
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, FSInputFile
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state, State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -10,7 +10,7 @@ from bot.databases.db_session import create_session
 from bot.databases.users_tg import User_tg
 from bot.databases.games_chess import GameChess
 from game_logic.chess_logic import Chess
-
+import os
 
 router = Router()
 storage = MemoryStorage()
@@ -292,3 +292,21 @@ async def process_end_game_press(callback: CallbackQuery):
         text=LEXICON["start"],
         reply_markup=create_keyboard("online_data", "offline_data"),
     )
+
+
+@router.message(F.text.startswith("/download_fen "), StateFilter(default_state))
+async def process_cancel_command_state(message: Message):
+    sp = message.text.split()
+    if len(sp) == 2 and sp[1].isdigit():
+        idd = int(sp[1])
+        session = create_session()
+        game = session.get(GameChess, idd)
+        if game:
+            with open("fen.txt", "w") as f:
+                f.write(eval(game.board)[-1])
+            await message.reply_document(FSInputFile("fen.txt"))
+            os.remove("fen.txt")
+        else:
+            await message.answer(
+                text=LEXICON["not_find_game"],
+            )

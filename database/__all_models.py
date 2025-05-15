@@ -1,1 +1,1 @@
-from . import users, games_chess, users_tg
+from . import games, users_tg, users_web

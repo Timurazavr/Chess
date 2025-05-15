@@ -4,7 +4,7 @@ from .db_session import SqlAlchemyBase
 # from sqlalchemy import orm
 
 
-class GameChess(SqlAlchemyBase):
+class Game(SqlAlchemyBase):
     __tablename__ = "games"
 
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, autoincrement=True)

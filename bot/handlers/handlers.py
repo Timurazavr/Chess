@@ -8,7 +8,8 @@ from bot.lexicon.lexicon import LEXICON
 from bot.keyboards.pagination_kb import create_keyboard, create_keyboard_chess
 from database.db_session import create_session
 from database.users_tg import User_tg
-from database.games_chess import GameChess
+from database.users_web import User_web
+from database.games import Game
 from game_logic.chess_logic import Chess
 import os
 
@@ -41,8 +42,10 @@ async def process_start_command(message: Message, bot: Bot):
             pass
         user.last_message_id = message_id
     else:
-        user = User_tg(id=message.from_user.id, last_message_id=message_id)
-        session.add(user)
+        user1 = User_tg(id=message.from_user.id, last_message_id=message_id)
+        user2 = User_web(id=message.from_user.id, nickname=message.from_user.id)
+        session.add(user1)
+        session.add(user2)
     session.commit()
     session.close()
 
@@ -55,7 +58,7 @@ async def process_offline_press(callback: CallbackQuery):
         chess = Chess(eval(user.session.board)[-1])
     else:
         chess = Chess()
-        game = GameChess(
+        game = Game(
             white_id=callback.from_user.id,
             black_id=callback.from_user.id,
             board=str([chess.get_fen()]),
@@ -156,20 +159,19 @@ async def process_konch_press(callback: CallbackQuery):
 async def process_join_random_press(callback: CallbackQuery, bot: Bot):
     session = create_session()
     game = (
-        session.query(GameChess)
-        .filter(GameChess.black_id == -1, GameChess.is_finished == 0)
-        .first()
+        session.query(Game).filter(Game.black_id == -1, Game.is_finished == 0).first()
     )
     if game is None:
         await callback.answer(LEXICON["no_free_game"], show_alert=True)
     else:
         chess = Chess(eval(game.board)[-1])
-        await bot.edit_message_text(
-            chat_id=game.users_tg[0].id,
-            message_id=game.users_tg[0].last_message_id,
-            text=LEXICON["motion_" + chess.who_walking],
-            reply_markup=create_keyboard_chess(chess.field),
-        )
+        if game.users_tg:
+            await bot.edit_message_text(
+                chat_id=game.users_tg[0].id,
+                message_id=game.users_tg[0].last_message_id,
+                text=LEXICON["motion_" + chess.who_walking],
+                reply_markup=create_keyboard_chess(chess.field),
+            )
         game.black_id = callback.from_user.id
         session.get(User_tg, callback.from_user.id).session_id = game.id
         session.commit()
@@ -205,7 +207,7 @@ async def process_join_random_press(callback: CallbackQuery):
     session = create_session()
     user = session.get(User_tg, callback.from_user.id)
     chess = Chess()
-    game = GameChess(white_id=callback.from_user.id, board=str([chess.get_fen()]))
+    game = Game(white_id=callback.from_user.id, board=str([chess.get_fen()]))
     session.add(game)
     session.commit()
     user.session_id = game.id
@@ -242,7 +244,7 @@ async def process_cancel_command_state(message: Message, bot: Bot, state: FSMCon
         text = message.text
         if text.isdigit():
             session = create_session()
-            game = session.get(GameChess, int(text))
+            game = session.get(Game, int(text))
             if game:
                 if game.black_id == -1 and game.is_finished == 0:
                     chess = Chess(eval(game.board)[-1])
@@ -300,7 +302,7 @@ async def process_cancel_command_state(message: Message):
     if len(sp) == 2 and sp[1].isdigit():
         idd = int(sp[1])
         session = create_session()
-        game = session.get(GameChess, idd)
+        game = session.get(Game, idd)
         if game:
             with open("fen.txt", "w") as f:
                 f.write(eval(game.board)[-1])

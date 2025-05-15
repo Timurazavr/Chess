@@ -1,0 +1,7 @@
+{
+  "PATH_TO_CHESS_FOLDER": "/home/pashok/PycharmProjects/chess",
+  "PATH_TO_CHESS_FOLDER_WIN": "C:\\Users\\timur\\Desktop\\Codes\\Chess",
+  "port": 64488,
+  "SECRET_KEY": "some badass key",
+  "SECRET_TG_API_KEY": "some badass tg api key"
+}

@@ -2,6 +2,5 @@
 .vscode/
 venv/
 __pycache__/
-secret.py
 .idea/
 .venv/

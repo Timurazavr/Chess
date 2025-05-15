@@ -1,11 +1,13 @@
 from aiogram import Bot, Dispatcher
+from os.path import join
 import asyncio
 import logging
 
 from bot.config_data.config import Config, load_config
-from bot.handlers import user_handlers, other_handlers
+from bot.handlers import handlers
 from bot.keyboards.main_menu import set_main_menu
 
+from database.db_session import global_init
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
@@ -22,6 +24,7 @@ async def main():
     # Выводим в консоль информацию о начале запуска бота
     logger.info("Starting bot")
 
+    global_init(join("database", "data.db"))
     # Загружаем конфиг в переменную config
     config: Config = load_config()
 
@@ -30,7 +33,7 @@ async def main():
 
     await set_main_menu(bot)
 
-    dp.include_routers(user_handlers.router, other_handlers.router)
+    dp.include_routers(handlers.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)

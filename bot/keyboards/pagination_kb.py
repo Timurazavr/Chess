@@ -3,13 +3,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot.lexicon.lexicon import LEXICON
 
 
-def create_keyboard(*buttons: str) -> InlineKeyboardMarkup:
+def create_keyboard(*buttons: str, width=1) -> InlineKeyboardMarkup:
     keyboard: InlineKeyboardBuilder = InlineKeyboardBuilder()
     keyboard.row(
         *[
             InlineKeyboardButton(text=LEXICON.get(b, b), callback_data=b)
             for b in buttons
-        ]
+        ],
+        width=width
     )
     return keyboard.as_markup()
 

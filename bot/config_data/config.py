@@ -1,5 +1,8 @@
-from bot.secret import API_TOKEN, ADMIN_IDS
 from dataclasses import dataclass
+import json
+
+CONFIG = json.load(open("config.json", "r"))
+API_TOKEN = CONFIG["SECRET_TG_API_KEY"]
 
 
 @dataclass
@@ -14,4 +17,4 @@ class Config:
 
 
 def load_config() -> Config:
-    return Config(tg_bot=TgBot(token=API_TOKEN, admin_ids=ADMIN_IDS))
+    return Config(tg_bot=TgBot(token=API_TOKEN, admin_ids=[]))

@@ -1,11 +1,11 @@
 from flask import Flask, request, redirect, jsonify, make_response, url_for
 from flask import render_template
-from data import db_session
+from webApp.data import db_session
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
-from data.users import User
-from data.games_chess import GameChess
-from forms.register import RegisterForm
-from forms.login import LoginForm
+from webApp.data.users import User
+from webApp.data.games_chess import GameChess
+from webApp.forms.register import RegisterForm
+from webApp.forms.login import LoginForm
 from game_logic.chess_logic import Chess
 
 # for linux absolute path

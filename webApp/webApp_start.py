@@ -314,7 +314,7 @@ def is_finished(session_id):
 
 def main():
     db_session.global_init(PATH_TO_DB_FOLDER + "/data.db")
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=64488)
 
 
 def rotate_board(board: [[], ]):

@@ -151,10 +151,18 @@ async function fetching_and_waiting() { // checks everytime if there was new mov
 function update_board() {
     for (let i of ids) {
         let texture = g_board[8 - i % 10][~~(i / 10) - 1];
-        if ((~~(i / 10) + i % 10) % 2 === 0) {
-            document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/W_field/${texture}.png)`;
+        let col
+        if (texture === 'F') {
+            col = ''
+        } else if (texture.toUpperCase() === texture) {
+            col = 'b'
         } else {
-            document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/B_field/${texture}.png)`;
+            col = 'w'
+        }
+        if ((~~(i / 10) + i % 10) % 2 === 0) {
+            document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/W_field/${texture.toLowerCase()}${col}.png)`;
+        } else {
+            document.getElementById(String(i)).style.backgroundImage = `url(${$SCRIPT_ROOT}static/img/B_field/${texture.toLowerCase()}${col}.png)`;
         }
     }
 }

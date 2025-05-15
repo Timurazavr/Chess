@@ -10,10 +10,10 @@ from game_logic.chess_logic import Chess
 
 # for linux absolute path
 # for windows relative path
-PATH_TO_DB_FOLDER = '/home/pashok/PycharmProjects/chess/db'
+PATH_TO_DB_FOLDER = '/db'
 app = Flask(__name__)
 # IMPORTANT SECRET KEY
-app.config['SECRET_KEY'] = open('static/SECRET_KEY', 'r').read().strip()
+app.config['SECRET_KEY'] = open('webApp/static/SECRET_KEY', 'r').read().strip()
 
 login_manager = LoginManager()
 login_manager.init_app(app)

@@ -6,6 +6,7 @@ from bot.config_data.config import Config, load_config
 from bot.handlers import user_handlers, other_handlers
 from bot.keyboards.main_menu import set_main_menu
 
+from bot.databases.db_session import global_init
 
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ async def main():
     # Выводим в консоль информацию о начале запуска бота
     logger.info("Starting bot")
 
+    global_init("db/data.db")
     # Загружаем конфиг в переменную config
     config: Config = load_config()
 

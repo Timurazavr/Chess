@@ -1,0 +1,5 @@
+{
+  "PATH_TO_CHESS_FOLDER": "/home/pashok/PycharmProjects/chess",
+  "port": 64488,
+  "SECRET_KEY": "some badass key"
+}

@@ -5,4 +5,3 @@ __pycache__/
 secret.py
 .idea/
 .venv/
-webApp/static/SECRET_KEY

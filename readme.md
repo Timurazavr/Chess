@@ -6,7 +6,6 @@ Chess - кросс-платформенный проект про шахматы
 
 * `sudo apt install python3-pip`
 * `apt install python3.10-venv`
-* `sudo apt install htop`
 
 **Установка проекта**
 
@@ -14,15 +13,19 @@ Chess - кросс-платформенный проект про шахматы
 * `cd Chess`
 * `python3 -m venv venv`
 * `source venv/bin/activate`
+* `pip install supervisor`
 * `pip install --upgrade pip`
 * `pip install -r requirements.txt`
 
 **Подготовка к запуску**
-
+* Измените параметр в supervisord.conf directory на путь к приложению
+* Перенесите файл supervisord.conf в папку /etc/supervisor/
 * Заполните config.json для web-приложения
 * Заполните bot/config_data/config.py для тг бота
 
 ****
 **Запуск программы**
 
-* `htop python3 __init__.py &`
+* `supervisord`
+
+Не подробная но лаконичная информация о supervisor на сайте https://codex.so/supervisor

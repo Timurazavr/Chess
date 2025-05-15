@@ -223,8 +223,8 @@ function resign() {
 }
 
 function ending() {
+    let text = document.getElementById('statement').innerText;
     return new Promise((resolve) => {  // Возвращаем Promise
-        let text = $('statement').text();
         let elem = document.getElementById('statement');
         let numb = 30;
         let dots = 0;

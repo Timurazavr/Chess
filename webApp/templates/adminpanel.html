@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div>
+        <button id="deleteAllGames">Удалить все игры</button>
+        <button id="endAllGames">Завершить все игры</button>
+        <button id="deleteAllUsersButAdmin">Удалить всех пользователей кроме админа</button>
+        <div>
+            <button id="deleteUser" style="display: inline">Удалить пользователя</button>
+            <label for="deleteUserId">Id пользователя</label><input type="number" id="deleteUserId"
+                                                                    style="display: inline">
+        </div>
+        <div>
+            <button id="addUser" style="display: inline">Добавить пользователя</button>
+            <label for="addUserNickname">Никнейм</label><input type="text" id="addUserNickname" style="display: inline">
+            <label for="addUserPassword">Пароль</label><input type="text" id="addUserPassword" style="display: inline">
+        </div>
+        <div>
+            <button id="addAdmin" style="display: inline">Добавить админа</button>
+            <label for="addAdminId">Id админа</label><input type="number" id="addAdminId" style="display: inline">
+        </div>
+        <h3 id="statement"></h3>
+    </div>
+{% endblock %}
+{% block script %}
+    <script>
+        function doCommand(command, arg1 = '', arg2 = '') {
+            if (arg1 !== '') {
+                command = `${command}&${arg1}`
+            }
+            if (arg2 !== '') {
+                command = `${command}&${arg2}`
+            }
+            $.ajaxSetup({
+                async: false
+            });
+            for (let i of Array(100).keys()) {
+                console.log(1)
+            }
+            $.getJSON(`/adminpanel/${command}`, function (data) {
+            }).done(function (data) {
+                if (data.success) {
+                    document.getElementById('statement').innerText = 'Success'
+                } else {
+                    document.getElementById('statement').innerText = 'Not  valid args'
+                }
+                for (let i of Array(100).keys()) {
+                    console.log(data.success)
+                }
+            }).fail(function (jqXHR, textStatus, err) {
+                console.log('error: adminpanel');
+                document.getElementById('statement').innerText = 'Not  valid args';
+                {#window.location = document.getElementById('script-root').innerText + "error";#}
+            });
+        }
+
+        function main() {
+            document.getElementById('deleteAllGames').onclick = () => doCommand('deleteAllGames')
+            document.getElementById('endAllGames').onclick = () => doCommand('endAllGames')
+            document.getElementById('deleteAllUsersButAdmin').onclick = () => doCommand('deleteAllUsersButAdmin')
+            document.getElementById('deleteUser').onclick = () => doCommand('deleteUser', document.getElementById('deleteUserId').value)
+            document.getElementById('addUser').onclick = () => doCommand('addUser', document.getElementById('addUserNickname').value, document.getElementById('addUserPassword').value)
+            document.getElementById('addAdmin').onclick = () => doCommand('addAdmin', document.getElementById('addAdminId').value)
+        }
+
+        window.onload = main
+    </script>
+{% endblock %}

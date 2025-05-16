@@ -19,10 +19,41 @@ Chess - кросс-платформенный проект про шахматы
 
 **Подготовка к запуску**
 
-* Заполните config.json для web-приложения
-* Заполните bot/config_data/config.py для тг бота
+* Заполните config.json по образцу
+* `sudo nano /lib/systemd/system/myService.service`
+* Заполните myService.service по образцу
+* `sudo chmod 644 /lib/systemd/system/myService.service`
+* `sudo systemctl daemon-reload`
+* `sudo systemctl enable myService`
 
 ****
 **Запуск программы**
 
-* `htop python3 __init__.py &`
+* `sudo systemd enable `
+
+**Образцы**
+
+* config.json
+
+{
+"PATH_TO_CHESS_FOLDER": "/home/pashok/PycharmProjects/chess",
+"PATH_TO_CHESS_FOLDER_WIN": "C:\\Users\\timur\\Desktop\\Codes\\Chess",
+"port": 61488,
+"SECRET_KEY": "some badass key",
+"SECRET_TG_API_KEY": "api"
+}
+
+* myService.service
+
+[Unit]
+Description=My app
+After=network.target
+
+[Service]
+Type=idle
+Restart=on-failure
+User=root
+ExecStart=/bin/bash -c 'cd /home/ubuntu/project/ && source env/bin/activate && python3 __init__.py'
+
+[Install]
+WantedBy=multi-user.target

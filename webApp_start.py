@@ -21,6 +21,7 @@ import sys
 
 # for linux absolute path
 # for windows relative path
+ADMIN_IDs = [1]
 CONFIG = json.load(open("config.json", "r"))
 if sys.platform.startswith("win"):
     PATH_TO_DB_FOLDER = CONFIG["PATH_TO_CHESS_FOLDER_WIN"]
@@ -74,8 +75,8 @@ def waiting():
                 db_sess.query(Game)
                 .filter(
                     (
-                        (Game.white_id == current_user.id)
-                        | (Game.black_id == current_user.id)
+                            (Game.white_id == current_user.id)
+                            | (Game.black_id == current_user.id)
                     ),
                     Game.is_finished == 0,
                 )
@@ -91,12 +92,12 @@ def waiting():
                 return redirect(f"/session/{sess.id}")
         except Exception as e:
             if (
-                len(
-                    db_sess.query(Game)
-                    .filter(Game.black_id == -1, Game.is_finished == 0)
-                    .all()
-                )
-                != 0
+                    len(
+                        db_sess.query(Game)
+                                .filter(Game.black_id == -1, Game.is_finished == 0)
+                                .all()
+                    )
+                    != 0
             ):
                 game = (
                     db_sess.query(Game)
@@ -201,9 +202,9 @@ def register():
             )
         db_sess = db_session.create_session()
         if (
-            db_sess.query(User_web)
-            .filter(User_web.nickname == form.nickname.data)
-            .first()
+                db_sess.query(User_web)
+                        .filter(User_web.nickname == form.nickname.data)
+                        .first()
         ):
             return render_template(
                 "register.html",
@@ -366,12 +367,12 @@ def get_my_sessions():
         request.root_path = url_for("index", _external=True)
     db_sess = db_session.create_session()
     if (
-        db_sess.query(Game)
-        .filter(
-            ((Game.white_id == current_user.id) | (Game.black_id == current_user.id)),
-            Game.is_finished == 0,
-        )
-        .first()
+            db_sess.query(Game)
+                    .filter(
+                ((Game.white_id == current_user.id) | (Game.black_id == current_user.id)),
+                Game.is_finished == 0,
+            )
+                    .first()
     ):
         have_sessions = True
     else:
@@ -404,8 +405,52 @@ def is_finished(session_id):
     return jsonify(is_finished=bool(is_finished))
 
 
+@app.route("/adminpanel/", defaults={"command": None})
+@app.route("/adminpanel/<string:command>")
+def adminpanel(command):
+    global ADMIN_IDs
+    if current_user.is_authenticated and current_user.id in ADMIN_IDs:
+        if not request.script_root:
+            request.root_path = url_for("index", _external=True)
+        if not command:
+            return render_template('adminpanel.html')
+        db_sess = db_session.create_session()
+        success = True
+        try:
+            if command == 'deleteAllGames':
+                db_sess.delete(Game)
+            elif command == 'endAllGames':
+                for i in db_sess.query(Game).filter(Game.is_finished == 0).all():
+                    i.is_finished = 1
+            elif command == 'deleteAllUsersButAdmin':
+                db_sess.query(User_web).filter(User_web.id not in ADMIN_IDs).delete()
+                ADMIN_IDs = [1]
+            elif command.startswith('deleteUser'):
+                db_sess.query(User_web).filter(User_web.id == int(command.split('&')[1])).delete()
+                if int(command.split('&')[1]) in ADMIN_IDs:
+                    ADMIN_IDs.remove(int(command.split('&')[1]))
+            elif command.startswith('addUser'):
+                user = User_web(
+                    nickname=command.split('&')[1]
+                )
+                user.set_password(command.split('&')[2])
+                db_sess.add(user)
+            elif command.startswith('addAdmin'):
+                ADMIN_IDs.append(int(command.split('&')[1]))
+            else:
+                success = False
+            db_sess.commit()
+        except Exception:
+            print('bad')
+            success = False
+        db_sess.close()
+        return jsonify(success=success)
+    print('bad2')
+    return redirect("/")
+
+
 def rotate_board(
-    board: list[list],
+        board: list[list],
 ):
     return [board[i].reverse() for i in range(7, -1, -1)]
 

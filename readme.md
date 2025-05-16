@@ -29,7 +29,7 @@ Chess - кросс-платформенный проект про шахматы
 ****
 **Запуск программы**
 
-* `sudo systemd enable `
+* `sudo systemd start meService `
 
 **Образцы**
 
